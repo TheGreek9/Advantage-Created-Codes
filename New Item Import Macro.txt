@@ -1,0 +1,161 @@
+
+Sub NewItemImport()
+'Leave code below for testing
+'Dim StartTime As Double
+'Dim SecondsElapsed As Double
+'StartTime = Timer
+  
+'Record Excel functionality for later reference
+screenUpdateState = Application.ScreenUpdating
+statusBarState = Application.DisplayStatusBar
+calcState = Application.Calculation
+eventsState = Application.EnableEvents
+displayPageBreakState = ActiveSheet.DisplayPageBreaks 'note this is a sheet-level setting
+'Turn off functionality so code runs faster
+Application.ScreenUpdating = False
+Application.DisplayStatusBar = False
+Application.Calculation = xlCalculationManual
+Application.EnableEvents = False
+ActiveSheet.DisplayPageBreaks = False 'note this is a sheet-level setting
+
+
+
+Dim foolast As Long
+Dim shp As Shape
+Dim wbs As Workbook
+Dim Rwb As Workbook
+Dim Dsht As Worksheet
+Dim name As String
+Dim k As Long
+Dim StatusRange() As Variant
+Dim fname As Variant
+
+On Error GoTo ErrHandler:
+
+'Clearing data
+Set Rwb = Application.Workbooks("New Item Distribution Reporting Template.xlsm")
+Set Dsht = Rwb.Sheets("Details")
+Dsht.UsedRange.ClearContents
+
+'Cycle through open workbooks
+For Each wbs In Application.Workbooks
+'Error Handling
+    If name <> "" Then
+        MsgBox "Error, check variable 'name' in code", vbExclamation
+        End
+'Exit loop if file found
+    ElseIf Left(wbs.name, 19) = "Distribution Export" Then Exit For
+    End If
+Next
+
+'Copys data from distribution export file to report template file, deletes columns, and counts used rows
+wbs.Sheets("Sheet1").UsedRange.Copy Destination:=Rwb.Sheets("Details").Range("A1")
+Dsht.Range("F:F, J:J, L:L, N:N, P:P, R:R, T:T, V:V, X:AG, AI:AI, AO:AT, AV:AV, AX:AX, AZ:AZ, BB:BB").Delete '***ADD COLUMNS HERE TO DELETE*** -Deletes certain columns in template
+Dsht.Rows("2").Delete
+foolast = Dsht.UsedRange.Rows.Count
+
+'Change Status column cells to appropriate values
+StatusRange = Dsht.Range("E" & 2 & ":E" & foolast).Value
+For k = 1 To foolast - 1
+    If StatusRange(k, 1) = "N" Then
+        StatusRange(k, 1) = "New"
+    Else
+        StatusRange(k, 1) = "ERROR"
+    End If
+Next k
+Dsht.Range("E" & 2 & ":E" & foolast).Value = StatusRange
+
+'Add in Non Rptd POD and appropriate values
+Dsht.Range("I:I").Insert
+Dsht.Range("I1").Value = "Non RPTD POD"
+StatusRange = Dsht.Range("I" & 2 & ":I" & foolast).Value
+For k = 1 To foolast - 1
+    If Dsht.Range("H" & k + 1).Value = 1 Then
+        StatusRange(k, 1) = 0
+    Else
+        StatusRange(k, 1) = 1
+    End If
+Next k
+Dsht.Range("I" & 2 & ":I" & foolast).Value = StatusRange
+
+'Add in Fresh Region and appropriate values based on Reference tab
+Dsht.Range("T:T").Insert
+Dsht.Range("T1").Value = "Fresh Region"
+StatusRange = Dsht.Range("R" & 2 & ":R" & foolast).Value
+For k = 1 To foolast - 1
+     StatusRange(k, 1) = Application.WorksheetFunction.VLookup(StatusRange(k, 1), Rwb.Sheets("Reference").Range("A1:B240"), 2, False)
+Next k
+Dsht.Range("T" & 2 & ":T" & foolast).Value = StatusRange
+
+
+'Add in Average Weeks and appropriate values based on Cut in Date
+Dsht.Range("G:G").Insert
+Dsht.Range("G1").Value = "Average Weeks"
+StatusRange = Dsht.Range("F" & 2 & ":F" & foolast).Value
+For k = 1 To foolast - 1
+    If IsEmpty(StatusRange(k, 1)) Then
+        StatusRange(k, 1) = ""
+    Else
+        StatusRange(k, 1) = Round((DateDiff("d", StatusRange(k, 1), Date) / 7), 1)
+    End If
+Next k
+Dsht.Range("G" & 2 & ":G" & foolast).Value = StatusRange
+
+'Error Handling
+If WorksheetFunction.CountBlank(Dsht.UsedRange.Rows(1)) > 0 Then
+    MsgBox "One of your data columns has a blank heading." & vbNewLine & "Please fix and re-run!.", vbCritical, "Column Heading Missing!"
+    Exit Sub
+End If
+'Resize pivot table source data and refresh pivot table
+Rwb.Sheets("Overview").PivotTables("ITable").ChangePivotCache Rwb.PivotCaches.Create(SourceType:=xlDatabase, SourceData:=Dsht.UsedRange)
+Rwb.Sheets("Overview").PivotTables("ITable").RefreshTable
+        
+'***CHANGE THIS SECTION IF MOVING BUTTON*** -Delete button created to run macro but leave other shapes
+For Each shp In Rwb.Sheets("Overview").Shapes
+    If shp.Type = 8 Then
+        If shp.FormControlType = 0 Then
+            shp.Delete
+        End If
+    End If
+Next shp
+'Go to pivot table worksheet
+Rwb.Sheets("Overview").Activate
+
+'Turn on alerts again, turned off previously
+Application.ScreenUpdating = screenUpdateState
+Application.DisplayStatusBar = statusBarState
+Application.Calculation = calcState
+Application.EnableEvents = eventsState
+ActiveSheet.DisplayPageBreaks = displayPageBreaksState 'note this is a sheet-level setting
+MsgBox "Successfully Completed", vbInformation
+
+'Save As file
+fname = Application.GetSaveAsFilename(InitialFileName:="New Item Distribution Report " & Format(Date, "mm-dd-yy"))
+If fname <> False Then
+    Rwb.SaveAs Filename:=fname & "xlsb", FileFormat:=50 '***CHANGE SAVE AS FILE TYPE HERE****
+End If
+
+'Leave code below for testing
+'SecondsElapsed = Round(Timer - StartTime, 2)
+'MsgBox "This code ran successfully in " & SecondsElapsed & " seconds", vbInformation
+Exit Sub
+
+'Error handling
+ErrHandler:
+    If Err.Number = 91 Then
+        MsgBox "Please open export file you would like to import", vbExclamation
+    Else
+        MsgBox "Error: " & Err.Number & vbNewLine & vbNewLine & Err.Description, vbExclamation
+    End If
+    
+End Sub
+
+
+
+'Sub Test()
+
+'End Sub
+
+
+
+
