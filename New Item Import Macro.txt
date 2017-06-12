@@ -32,23 +32,20 @@ Dim fname As Variant
 
 On Error GoTo ErrHandler:
 
-'Clearing data
-Set Rwb = Application.Workbooks("New Item Distribution Reporting Template.xlsm")
+Set Rwb = ThisWorkbook
 Set Dsht = Rwb.Sheets("Details")
 Dsht.UsedRange.ClearContents
+Dsht.UsedRange.Clear
 
-'Cycle through open workbooks
+'Find Distribution Export file in open workbooks
 For Each wbs In Application.Workbooks
-'Error Handling
     If name <> "" Then
         MsgBox "Error, check variable 'name' in code", vbExclamation
         End
-'Exit loop if file found
     ElseIf Left(wbs.name, 19) = "Distribution Export" Then Exit For
     End If
 Next
 
-'Copys data from distribution export file to report template file, deletes columns, and counts used rows
 wbs.Sheets("Sheet1").UsedRange.Copy Destination:=Rwb.Sheets("Details").Range("A1")
 Dsht.Range("F:F, J:J, L:L, N:N, P:P, R:R, T:T, V:V, X:AG, AI:AI, AO:AT, AV:AV, AX:AX, AZ:AZ, BB:BB").Delete '***ADD COLUMNS HERE TO DELETE*** -Deletes certain columns in template
 Dsht.Rows("2").Delete
@@ -79,6 +76,7 @@ Next k
 Dsht.Range("I" & 2 & ":I" & foolast).Value = StatusRange
 
 'Add in Fresh Region and appropriate values based on Reference tab
+On Error Resume Next:
 Dsht.Range("T:T").Insert
 Dsht.Range("T1").Value = "Fresh Region"
 StatusRange = Dsht.Range("R" & 2 & ":R" & foolast).Value
@@ -87,8 +85,8 @@ For k = 1 To foolast - 1
 Next k
 Dsht.Range("T" & 2 & ":T" & foolast).Value = StatusRange
 
-
 'Add in Average Weeks and appropriate values based on Cut in Date
+On Error GoTo ErrHandler:
 Dsht.Range("G:G").Insert
 Dsht.Range("G1").Value = "Average Weeks"
 StatusRange = Dsht.Range("F" & 2 & ":F" & foolast).Value
@@ -101,12 +99,11 @@ For k = 1 To foolast - 1
 Next k
 Dsht.Range("G" & 2 & ":G" & foolast).Value = StatusRange
 
-'Error Handling
+'Resize pivot table source data and refresh pivot table
 If WorksheetFunction.CountBlank(Dsht.UsedRange.Rows(1)) > 0 Then
     MsgBox "One of your data columns has a blank heading." & vbNewLine & "Please fix and re-run!.", vbCritical, "Column Heading Missing!"
     Exit Sub
 End If
-'Resize pivot table source data and refresh pivot table
 Rwb.Sheets("Overview").PivotTables("ITable").ChangePivotCache Rwb.PivotCaches.Create(SourceType:=xlDatabase, SourceData:=Dsht.UsedRange)
 Rwb.Sheets("Overview").PivotTables("ITable").RefreshTable
         
@@ -118,7 +115,8 @@ For Each shp In Rwb.Sheets("Overview").Shapes
         End If
     End If
 Next shp
-'Go to pivot table worksheet
+
+Rwb.Sheets("Reference").Visible = False
 Rwb.Sheets("Overview").Activate
 
 'Turn on alerts again, turned off previously
@@ -140,7 +138,6 @@ End If
 'MsgBox "This code ran successfully in " & SecondsElapsed & " seconds", vbInformation
 Exit Sub
 
-'Error handling
 ErrHandler:
     If Err.Number = 91 Then
         MsgBox "Please open export file you would like to import", vbExclamation
@@ -149,12 +146,6 @@ ErrHandler:
     End If
     
 End Sub
-
-
-
-'Sub Test()
-
-'End Sub
 
 
 
