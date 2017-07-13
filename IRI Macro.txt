@@ -8,7 +8,6 @@ ReDim geo(0 To tabCount - 2) As Variant
 Dim colHead() As Variant
 Dim colLast As Long
 Dim i As Long
-Dim j As Long
 Dim name As String
 Dim rowLast As Long
 Dim s1ColLast As Long
@@ -20,7 +19,6 @@ Dim ws As Worksheet
 With ThisWorkbook
 
 'TODO: CHANGE THE REST OF THE USED RANGES TO ROWLAST AND COLUMNLAST
-
 
 'Delete empty rows above cells and insert first column
 For Each ws In .Worksheets
@@ -37,11 +35,6 @@ For Each ws In .Worksheets
     End If
 Next
 
-
-'Save column headers of sheet(2) for later use
-colLast = .Worksheets(2).Cells(8, Columns.Count).End(xlToLeft).Column
-'colHead = .Worksheets(2).Range(.Worksheets(2).Cells(1, 1), .Worksheets(2).Cells(1, colLast)).Value
-'colHead(1, 1) = "Geographies"
 
 'Fill array with geographies from Index
 For i = 0 To tabCount - 2
@@ -62,10 +55,12 @@ Next i
 'Paste used range of each sheet to sheet "1"
 For i = 3 To tabCount
     s1RowLast = .Worksheets(2).Range("C" & Worksheets(2).Rows.Count).End(xlUp).Row
-    .Worksheets(i).UsedRange.Copy
-    .Worksheets(2).Range("A" & s1RowLast + 1).PasteSpecial Paste:=xlPasteAll
+    rowLast = .Worksheets(i).Range("C" & Worksheets(i).Rows.Count).End(xlUp).Row
+    colLast = .Worksheets(i).Cells(1, Columns.Count).End(xlToLeft).Column
+    .Worksheets(i).Range(.Worksheets(i).Cells(1, 1), Worksheets(i).Cells(rowLast, colLast)).Copy Destination:=.Worksheets(2).Range("A" & s1RowLast + 1)
 Next i
 
+'Delete header rows on sheet "1" after pasting empty tabs
 i = 1
 Do While (IsEmpty(.Worksheets(2).Cells(i, 1)) = False)
     If (.Worksheets(2).Cells(i, 2).Value = "Category Name") Then
@@ -75,33 +70,35 @@ Do While (IsEmpty(.Worksheets(2).Cells(i, 1)) = False)
     i = i + 1
 Loop
 
-j = 1
-Do While (IsEmpty(.Worksheets(2).Cells(j, 1)) = False)
-    If (IsEmpty(.Worksheets(2).Cells(j, 3)) = True) Then
-        .Worksheets(2).Rows(j).Delete
-        j = j - 1
+'Delete any empty rows on sheet "1". NOT SURE IF KEEPING THIS
+i = 1
+Do While (IsEmpty(.Worksheets(2).Cells(i, 1)) = False)
+    If (IsEmpty(.Worksheets(2).Cells(i, 3)) = True) Then
+        .Worksheets(2).Rows(i).Delete
+        i = i - 1
     End If
-    j = j + 1
+    i = i + 1
 Loop
 
+'Unmerge cells in Time column
 On Error Resume Next:
-j = 1
-Do While (IsEmpty(.Worksheets(2).Cells(j, 1)) = False)
-    If (.Worksheets(2).Cells(j, 2).MergeCells = True) Then
-        .Worksheets(2).Cells(j, 2).UnMerge
+i = 1
+Do While (IsEmpty(.Worksheets(2).Cells(i, 1)) = False)
+    If (.Worksheets(2).Cells(i, 2).MergeCells = True) Then
+        .Worksheets(2).Cells(i, 2).UnMerge
     End If
-    j = j + 1
+    i = i + 1
 Loop
 
 'Fill down time to appropriate rows
-j = 1
-Do While (IsEmpty(.Worksheets(2).Cells(j, 1)) = False)
-    If (IsEmpty(.Worksheets(2).Cells(j, 2)) = False) Then
-        name = .Worksheets(2).Cells(j, 2).Value
-    ElseIf (IsEmpty(.Worksheets(2).Cells(j, 2)) = True) Then
-        .Worksheets(2).Cells(j, 2).Value = name
+i = 1
+Do While (IsEmpty(.Worksheets(2).Cells(i, 1)) = False)
+    If (IsEmpty(.Worksheets(2).Cells(i, 2)) = False) Then
+        name = .Worksheets(2).Cells(i, 2).Value
+    ElseIf (IsEmpty(.Worksheets(2).Cells(i, 2)) = True) Then
+        .Worksheets(2).Cells(i, 2).Value = name
     End If
-    j = j + 1
+    i = i + 1
 Loop
 
 
@@ -109,6 +106,8 @@ Loop
 End With
 MsgBox "Success!"
 End Sub
+
+
 
 
 
