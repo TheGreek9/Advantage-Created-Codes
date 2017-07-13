@@ -1,0 +1,124 @@
+Option Explicit
+Sub IRI()
+'If seeking help with macro, contact: Spyro Ziangos - spyro.ziangos@advantagesolutions.net
+Dim tabCount As Long
+tabCount = ThisWorkbook.Worksheets.Count
+ReDim geo(0 To tabCount - 2) As Variant
+
+Dim colHead() As Variant
+Dim colLast As Long
+Dim i As Long
+Dim j As Long
+Dim name As String
+Dim rowLast As Long
+Dim s1ColLast As Long
+Dim s1RowLast As Long
+Dim sheetLast As Long
+Dim shp As Shape
+Dim ws As Worksheet
+
+With ThisWorkbook
+
+'TODO: CHANGE THE REST OF THE USED RANGES TO ROW LAST COLUMN LAST
+
+
+'Delete empty rows above cells and insert first column
+For Each ws In .Worksheets
+    For Each shp In ws.Shapes
+        shp.Delete
+    Next
+
+    Do While (IsEmpty(ws.Cells(1, 3)))
+        ws.Rows(1).Delete
+    Loop
+
+    If (IsEmpty(ws.Range("A1")) = False) Then
+        ws.Range("A:A").Columns.Insert
+    End If
+Next
+
+
+'Save column headers of sheet(2) for later use
+colLast = .Worksheets(2).Cells(8, Columns.Count).End(xlToLeft).Column
+'colHead = .Worksheets(2).Range(.Worksheets(2).Cells(1, 1), .Worksheets(2).Cells(1, colLast)).Value
+'colHead(1, 1) = "Geographies"
+
+'Fill array with geographies from Index
+For i = 0 To tabCount - 2
+    geo(i) = .Worksheets("Index").Cells(i + 2, 4).Value
+Next i
+
+
+
+'Fill first column with geography
+For i = 2 To tabCount
+    rowLast = .Worksheets(i).Range("C" & Worksheets(i).Rows.Count).End(xlUp).Row
+    .Worksheets(i).Range("A1:A" & rowLast).Value = geo(i - 2)
+    If i > 2 And .Worksheets(i).Range("B1").Value = "Time" Then
+        .Worksheets(i).Rows(1).Delete
+    End If
+Next i
+
+'Paste used range of each sheet to sheet "1"
+For i = 3 To tabCount
+    s1RowLast = .Worksheets(2).Range("C" & Worksheets(2).Rows.Count).End(xlUp).Row
+    .Worksheets(i).UsedRange.Copy
+    .Worksheets(2).Range("A" & s1RowLast + 1).PasteSpecial Paste:=xlPasteAll
+Next i
+
+i = 1
+Do While (IsEmpty(.Worksheets(2).Cells(i, 1)) = False)
+    If (.Worksheets(2).Cells(i, 2).Value = "Category Name") Then
+        .Worksheets(2).Rows(i).Delete
+        i = i - 1
+    End If
+    i = i + 1
+Loop
+
+j = 1
+Do While (IsEmpty(.Worksheets(2).Cells(j, 1)) = False)
+    If (IsEmpty(.Worksheets(2).Cells(j, 3)) = True) Then
+        .Worksheets(2).Rows(j).Delete
+        j = j - 1
+    End If
+    j = j + 1
+Loop
+
+On Error Resume Next:
+j = 1
+Do While (IsEmpty(.Worksheets(2).Cells(j, 1)) = False)
+    If (.Worksheets(2).Cells(j, 2).MergeCells = True) Then
+        .Worksheets(2).Cells(j, 2).UnMerge
+    End If
+    j = j + 1
+Loop
+
+'Fill down time to appropriate rows
+j = 1
+Do While (IsEmpty(.Worksheets(2).Cells(j, 1)) = False)
+    If (IsEmpty(.Worksheets(2).Cells(j, 2)) = False) Then
+        name = .Worksheets(2).Cells(j, 2).Value
+    ElseIf (IsEmpty(.Worksheets(2).Cells(j, 2)) = True) Then
+        .Worksheets(2).Cells(j, 2).Value = name
+    End If
+    j = j + 1
+Loop
+
+
+.Worksheets(2).Range("A1").Value = "Geographies"
+End With
+MsgBox "Success!"
+End Sub
+
+
+
+
+
+
+
+
+
+
+
+
+
