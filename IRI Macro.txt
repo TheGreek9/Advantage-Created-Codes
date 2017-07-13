@@ -18,7 +18,10 @@ Dim ws As Worksheet
 
 With ThisWorkbook
 
-'TODO: CHANGE THE REST OF THE USED RANGES TO ROWLAST AND COLUMNLAST
+If (.Worksheets(2).Range("A1").Value = "Geographies") Then
+    MsgBox "Condensed Information Already, Please Check Tab 1", vbExclamation
+    End
+End If
 
 'Delete empty rows above cells and insert first column
 For Each ws In .Worksheets
@@ -30,7 +33,7 @@ For Each ws In .Worksheets
         ws.Rows(1).Delete
     Loop
 
-    If (IsEmpty(ws.Range("A1")) = False) Then
+    If (IsEmpty(ws.Range("A1")) = False And ws.Cells(1, 1) <> ws.Cells(2, 1)) Then
         ws.Range("A:A").Columns.Insert
     End If
 Next
@@ -106,6 +109,9 @@ Loop
 End With
 MsgBox "Success!"
 End Sub
+
+
+
 
 
 
