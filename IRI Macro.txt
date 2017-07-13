@@ -19,7 +19,7 @@ Dim ws As Worksheet
 
 With ThisWorkbook
 
-'TODO: CHANGE THE REST OF THE USED RANGES TO ROW LAST COLUMN LAST
+'TODO: CHANGE THE REST OF THE USED RANGES TO ROWLAST AND COLUMNLAST
 
 
 'Delete empty rows above cells and insert first column
