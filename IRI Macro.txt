@@ -16,6 +16,8 @@ Dim sheetLast As Long
 Dim shp As Shape
 Dim ws As Worksheet
 
+On Error GoTo ErrorHandler
+
 With ThisWorkbook
 
 If (.Worksheets(2).Range("A1").Value = "Geographies") Then
@@ -37,7 +39,6 @@ For Each ws In .Worksheets
         ws.Range("A:A").Columns.Insert
     End If
 Next
-
 
 'Fill array with geographies from Index
 For i = 0 To tabCount - 2
@@ -104,11 +105,18 @@ Do While (IsEmpty(.Worksheets(2).Cells(i, 1)) = False)
     i = i + 1
 Loop
 
-
 .Worksheets(2).Range("A1").Value = "Geographies"
 End With
 MsgBox "Success!"
+Exit Sub
+
+ErrorHandler:
+    MsgBox "Error " & Err.Number & ": " & Err.Description & vbNewLine & vbNewLine & _
+    "Please Close Report And Try Again;" & vbNewLine & vbNewLine & "If Error Persists, Contact Spyro Ziangos - spyro.ziangos@advantagesolutions.net", vbExclamation
+    
+
 End Sub
+
 
 
 
