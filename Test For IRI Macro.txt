@@ -1,0 +1,19 @@
+Sub Test()
+
+Dim Worksheet As Worksheet
+Dim shp As Shape
+
+
+For Each Worksheet In ThisWorkbook.Worksheets
+    For Each shp In Worksheet.Shapes
+        shp.Delete
+    Next shp
+
+    If Worksheet.Range("B1").End(xlDown).Value <> "Sub-Category Name" Then
+        Worksheet.Range("B1").End(xlDown).Offset(1, 0).Value = Worksheet.Name
+    End If
+    
+    Worksheet.Range("B" & Rows.count).End(xlUp).Value = Worksheet.Name
+Next Worksheet
+
+End Sub
