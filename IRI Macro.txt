@@ -3,6 +3,10 @@ Sub IRI()
 'If seeking help with macro, contact: Spyro Ziangos - spyro.ziangos@advantagesolutions.net
 Dim tabCount As Long
 tabCount = ThisWorkbook.Worksheets.Count
+If (tabCount = 1) Then
+    MsgBox "More Than One Tab Required To Work", vbExclamation
+    End
+End If
 ReDim geo(0 To tabCount - 2) As Variant
 
 Dim colHead() As Variant
@@ -106,8 +110,9 @@ Do While (IsEmpty(.Worksheets(2).Cells(i, 1)) = False)
 Loop
 
 .Worksheets(2).Range("A1").Value = "Geographies"
-End With
+.Worksheets(2).Activate
 MsgBox "Success!"
+End With
 Exit Sub
 
 ErrorHandler:
@@ -116,22 +121,3 @@ ErrorHandler:
     
 
 End Sub
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
