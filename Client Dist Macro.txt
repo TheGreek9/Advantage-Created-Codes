@@ -1,18 +1,21 @@
+Option Explicit
 Sub Import()
 
 Dim shp As Shape
-Dim wbs As Workbook
-Dim Rwb As Workbook
-Dim Dsht As Worksheet
+Dim worksheet As worksheet
+Dim wbs As workbook
+Dim Rwb As workbook
+Dim Dsht As worksheet
 Dim name As String
 Dim Drng As Range
 Dim fname As Variant
 Dim dRowLast As Long
 Dim dColLast As Long
+Dim c As Variant
 
 
 On Error GoTo ErrHandler:
-'Clearing data and making macro run easier
+'Clear data and making macro run easier
 Application.ScreenUpdating = False
 Application.DisplayAlerts = False
 Set Rwb = Application.Workbooks("Client Distribution Reporting Template.xlsm")
@@ -25,7 +28,7 @@ For Each wbs In Application.Workbooks
         MsgBox "Error, check variable 'name' in code", vbExclamation
         End
         
-        '***ADD COLUMNS HERE TO DELETE*** -Copys and deletes columns and rows in template
+        '***ADD COLUMNS HERE TO DELETE*** -Copy and delete columns and rows in template
     ElseIf Left(wbs.name, 19) = "Distribution Export" Then
     With Dsht
         wbs.Sheets("Sheet1").Range("A:CZ").Copy Destination:=Rwb.Sheets("Data").Range("A:CZ")
@@ -50,46 +53,47 @@ For Each wbs In Application.Workbooks
         'Add in Non Rptd POD and appropriate values
         .Range("I:I").Insert
         .Range("I1").Value = "Non RPTD POD"
-        For Each d In .Range("I2:I" & dRowLast).Cells
-            If d.Offset(0, -1).Value = 1 Then
-                d.Value = 0
-            ElseIf d.Offset(0, -1).Value = 0 Then
-                d.Value = 1
+        For Each c In .Range("I2:I" & dRowLast).Cells
+            If c.Offset(0, -1).Value = 1 Then
+                c.Value = 0
+            ElseIf c.Offset(0, -1).Value = 0 Then
+                c.Value = 1
             End If
-        Next d
+        Next c
                           
-        'Sets what range data is in for pivot table
+        'Set what range data is in for pivot table
         Set Drng = .Range(.Cells(1, 1), .Cells(dRowLast, dColLast))
-        'Error Handling
         If WorksheetFunction.CountBlank(Drng.Rows(1)) > 0 Then
             MsgBox "One of your data columns has a blank heading." & vbNewLine & "Please fix and re-run!.", vbCritical, "Column Heading Missing!"
             Exit Sub
         End If
-        'Resized the pivot table source data and refreshes the pivot table
+        'Resize the pivot table source data and refresh the pivot table
         Rwb.Sheets("Overview").PivotTables("ITable").ChangePivotCache Rwb.PivotCaches.Create(SourceType:=xlDatabase, SourceData:=Drng)
         Rwb.RefreshAll
-        '***CHANGE THIS SECTION IF MOVING BUTTON*** -Delete macro button but leave other shapes
-        For Each shp In Rwb.Sheets("Overview").Shapes
-            If shp.Type = 8 Then
-                If shp.FormControlType = 0 Then
+        
+        'Delete macro button but leave other shapes
+        For Each worksheet In Rwb.Worksheets
+            For Each shp In worksheet.Shapes
+                If shp.Type = 8 Then
+                    If shp.FormControlType = 0 Then
                     shp.Delete
+                    End If
                 End If
-            End If
-        Next shp
-        'Go to pivot table worksheet
+            Next shp
+        Next worksheet
         Rwb.Sheets("Overview").Activate
-        'Save As file
+        MsgBox "Successful!"
+        
         fname = Application.GetSaveAsFilename(InitialFileName:=.Range("A2").Value & " Report " & Format(Date, "mm-dd-yy"))
         If fname <> False Then
             Rwb.SaveAs Filename:=fname & "xlsb", FileFormat:=50 '***CHANGE SAVE AS FILE TYPE HERE****
         End If
     End With
     End If
-Next
-'Turn on alerts again, turned off previously
+Next wbs
 Application.DisplayAlerts = True
-
 Exit Sub
+
 'Error handling
 ErrHandler:
 If Err.Number = 91 Then
