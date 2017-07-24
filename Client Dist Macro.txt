@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 Sub Import()
 
@@ -14,6 +15,26 @@ Dim fname As Variant
 
 On Error GoTo ErrHandler:
 'Clearing data and making macro run easier
+=======
+Option Explicit
+Sub Import()
+
+Dim shp As Shape
+Dim worksheet As worksheet
+Dim wbs As workbook
+Dim Rwb As workbook
+Dim Dsht As worksheet
+Dim name As String
+Dim Drng As Range
+Dim fname As Variant
+Dim dRowLast As Long
+Dim dColLast As Long
+Dim c As Variant
+
+
+On Error GoTo ErrHandler:
+'Clear data and making macro run easier
+>>>>>>> macro
 Application.ScreenUpdating = False
 Application.DisplayAlerts = False
 Set Rwb = Application.Workbooks("Client Distribution Reporting Template.xlsm")
@@ -26,6 +47,7 @@ For Each wbs In Application.Workbooks
         MsgBox "Error, check variable 'name' in code", vbExclamation
         End
         
+<<<<<<< HEAD
         '***ADD COLUMNS HERE TO DELETE*** -Copys and deletes columns and rows in template
     ElseIf Left(wbs.name, 19) = "Distribution Export" Then
         wbs.Sheets("Sheet1").Range("A:CZ").Copy Destination:=Rwb.Sheets("Data").Range("A:CZ")
@@ -35,6 +57,21 @@ For Each wbs In Application.Workbooks
         
         'Change Status column cells to appropriate values
         For Each c In Dsht.UsedRange.Columns("E").Cells
+=======
+        '***ADD COLUMNS HERE TO DELETE*** -Copy and delete columns and rows in template
+    ElseIf Left(wbs.name, 19) = "Distribution Export" Then
+    With Dsht
+        wbs.Sheets("Sheet1").Range("A:CZ").Copy Destination:=Rwb.Sheets("Data").Range("A:CZ")
+        .Range("F:F, J:J, L:L, N:N, P:P, R:R, T:T, V:V, X:AG, AI:AI, AO:AT, AV:AV, AX:AX, AZ:AZ, BB:BB").Delete
+        .Rows("1:2").Delete
+        .Rows("2").Delete
+        dRowLast = .Range("A" & .Rows.Count).End(xlUp).Row
+        dColLast = .Cells(1, Columns.Count).End(xlToLeft).Column
+        
+        
+        'Change Status column cells to appropriate values
+        For Each c In .Range("E2:E" & dRowLast).Cells
+>>>>>>> macro
             If c.Value = "N" Then
                 c.Value = "New"
             ElseIf c.Value = "U" Then
@@ -45,6 +82,7 @@ For Each wbs In Application.Workbooks
         Next c
         
         'Add in Non Rptd POD and appropriate values
+<<<<<<< HEAD
         Dsht.Range("I:I").Insert
         Dsht.Range("I1").Value = "Non RPTD POD"
         For Each d In Dsht.UsedRange.Columns("I").Cells
@@ -60,10 +98,25 @@ For Each wbs In Application.Workbooks
         j = Dsht.UsedRange.Columns.Count
         Set Drng = Dsht.Range(Dsht.Cells(1, 1), Dsht.Cells(i, j))
         'Error Handling
+=======
+        .Range("I:I").Insert
+        .Range("I1").Value = "Non RPTD POD"
+        For Each c In .Range("I2:I" & dRowLast).Cells
+            If c.Offset(0, -1).Value = 1 Then
+                c.Value = 0
+            ElseIf c.Offset(0, -1).Value = 0 Then
+                c.Value = 1
+            End If
+        Next c
+                          
+        'Set what range data is in for pivot table
+        Set Drng = .Range(.Cells(1, 1), .Cells(dRowLast, dColLast))
+>>>>>>> macro
         If WorksheetFunction.CountBlank(Drng.Rows(1)) > 0 Then
             MsgBox "One of your data columns has a blank heading." & vbNewLine & "Please fix and re-run!.", vbCritical, "Column Heading Missing!"
             Exit Sub
         End If
+<<<<<<< HEAD
         'Resized the pivot table source data and refreshes the pivot table
         Rwb.Sheets("Overview").PivotTables("ITable").ChangePivotCache Rwb.PivotCaches.Create(SourceType:=xlDatabase, SourceData:=Drng)
         Rwb.RefreshAll
@@ -88,6 +141,35 @@ Next
 Application.DisplayAlerts = True
 
 Exit Sub
+=======
+        'Resize the pivot table source data and refresh the pivot table
+        Rwb.Sheets("Overview").PivotTables("ITable").ChangePivotCache Rwb.PivotCaches.Create(SourceType:=xlDatabase, SourceData:=Drng)
+        Rwb.RefreshAll
+        
+        'Delete macro button but leave other shapes
+        For Each worksheet In Rwb.Worksheets
+            For Each shp In worksheet.Shapes
+                If shp.Type = 8 Then
+                    If shp.FormControlType = 0 Then
+                    shp.Delete
+                    End If
+                End If
+            Next shp
+        Next worksheet
+        Rwb.Sheets("Overview").Activate
+        MsgBox "Successful!"
+        
+        fname = Application.GetSaveAsFilename(InitialFileName:=.Range("A2").Value & " Report " & Format(Date, "mm-dd-yy"))
+        If fname <> False Then
+            Rwb.SaveAs Filename:=fname & "xlsb", FileFormat:=50 '***CHANGE SAVE AS FILE TYPE HERE****
+        End If
+    End With
+    End If
+Next wbs
+Application.DisplayAlerts = True
+Exit Sub
+
+>>>>>>> macro
 'Error handling
 ErrHandler:
 If Err.Number = 91 Then

@@ -19,6 +19,7 @@ Dim s1RowLast As Long
 Dim sheetLast As Long
 Dim shp As Shape
 Dim ws As Worksheet
+Application.ScreenUpdating = False
 
 On Error GoTo ErrorHandler
 
@@ -71,22 +72,22 @@ Next i
 'Delete header rows on sheet "1" after pasting empty tabs
 i = 1
 Do While (IsEmpty(.Worksheets(2).Cells(i, 1)) = False)
-    If (.Worksheets(2).Cells(i, 2).Value = "Category Name") Then
+    If (.Worksheets(2).Cells(i, 2).Value = "Category Name" Or .Worksheets(2).Cells(i, 2).Value = "Sub-Category Name") Then
         .Worksheets(2).Rows(i).Delete
         i = i - 1
     End If
     i = i + 1
 Loop
 
-'Delete any empty rows on sheet "1". NOT SURE IF KEEPING THIS
-i = 1
-Do While (IsEmpty(.Worksheets(2).Cells(i, 1)) = False)
-    If (IsEmpty(.Worksheets(2).Cells(i, 3)) = True) Then
-        .Worksheets(2).Rows(i).Delete
-        i = i - 1
-    End If
-    i = i + 1
-Loop
+''Delete any empty rows on sheet "1". NOT SURE IF KEEPING THIS
+'i = 1
+'Do While (IsEmpty(.Worksheets(2).Cells(i, 1)) = False)
+'    If (IsEmpty(.Worksheets(2).Cells(i, 3)) = True) Then
+'        .Worksheets(2).Rows(i).Delete
+'        i = i - 1
+'    End If
+'    i = i + 1
+'Loop
 
 'Unmerge cells in Time column
 On Error Resume Next:
@@ -119,5 +120,10 @@ ErrorHandler:
     MsgBox "Error " & Err.Number & ": " & Err.Description & vbNewLine & vbNewLine & _
     "Please Close Report And Try Again;" & vbNewLine & vbNewLine & "If Error Persists, Contact Spyro Ziangos - spyro.ziangos@advantagesolutions.net", vbExclamation
     
-
+Application.ScreenUpdating = True
 End Sub
+
+
+
+
+
