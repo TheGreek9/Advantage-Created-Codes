@@ -8,122 +8,118 @@ If (tabCount = 1) Then
     End
 End If
 ReDim geo(0 To tabCount - 2) As Variant
-
-Dim colHead() As Variant
+Dim cell As Variant
 Dim colLast As Long
 Dim i As Long
+Dim j As Long
 Dim name As String
+Dim response As Integer
 Dim rowLast As Long
-Dim s1ColLast As Long
 Dim s1RowLast As Long
-Dim sheetLast As Long
 Dim shp As Shape
-Dim ws As Worksheet
+Dim timeArray As Variant
 Application.ScreenUpdating = False
 
 On Error GoTo ErrorHandler
 
 With ThisWorkbook
+    
+    If .Worksheets(2).Range("A1").Value = "Geographies" Then
+        MsgBox "Condensed Information Already, Please Check Tab 1", vbExclamation
+        .Worksheets(2).Activate
+        End
+    End If
+    
+    'Fill array with geographies from Index
+    For i = 0 To tabCount - 2
+        geo(i) = .Worksheets("Index").Cells(i + 3, 4).Value
+    Next i
+    
+    
+    For i = 2 To tabCount
+        With .Worksheets(i)
+        
 
-If (.Worksheets(2).Range("A1").Value = "Geographies") Then
-    MsgBox "Condensed Information Already, Please Check Tab 1", vbExclamation
-    End
-End If
-
-'Delete empty rows above cells and insert first column
-For Each ws In .Worksheets
-    For Each shp In ws.Shapes
-        shp.Delete
+            
+            rowLast = .Range("B" & .Rows.Count).End(xlUp).Row
+            If rowLast <> 1 Then
+                'Delete text boxes and shapes
+                For Each shp In .Shapes
+                    shp.Delete
+                Next
+                
+                'Delete empty rows above headers
+                Do While (IsEmpty(.Cells(1, 1)))
+                    .Rows(1).Delete
+                Loop
+            
+                rowLast = .Range("B" & .Rows.Count).End(xlUp).Row
+                
+                'Insert geographies into column A
+                If (IsEmpty(.Range("A1")) = False) Then
+                    .Range("A:A").Columns.Insert
+                End If
+                .Range(.Cells(2, 1), .Cells(rowLast, 1)).Value = geo(i - 2)
+            
+                'Unmerge Time column
+                .Range("B1:B" & rowLast).UnMerge
+                    
+                'Fill down respecitve times in Time column
+                 If IsEmpty(.Range("B2")) = False Then
+                 timeArray = .Range("B1:B" & rowLast).Value
+                 For j = 1 To rowLast
+                     If IsEmpty(timeArray(j, 1)) = False Then
+                         name = timeArray(j, 1)
+                     Else
+                         timeArray(j, 1) = name
+                     End If
+                 Next j
+                .Range("B1:B" & rowLast).Value = timeArray
+                End If
+                    
+                    'Copy used range in current tab, and paste to end of used range 1st sheet
+                If i > 2 And IsEmpty(.Range("B2")) = False Then
+                     s1RowLast = ThisWorkbook.Worksheets(2).Range("C" & Worksheets(2).Rows.Count).End(xlUp).Row
+                     rowLast = .Range("B" & .Rows.Count).End(xlUp).Row
+                     colLast = .Cells(1, Columns.Count).End(xlToLeft).Column
+                     .Range(.Cells(1, 1), .Cells(rowLast, colLast)).Copy
+                     ThisWorkbook.Worksheets(2).Range("A" & s1RowLast + 1).PasteSpecial xlPasteValues
+                     Application.CutCopyMode = False
+                End If
+            End If
+        End With
     Next
-
-    Do While (IsEmpty(ws.Cells(1, 3)))
-        ws.Rows(1).Delete
-    Loop
-
-    If (IsEmpty(ws.Range("A1")) = False And ws.Cells(1, 1) <> ws.Cells(2, 1)) Then
-        ws.Range("A:A").Columns.Insert
-    End If
-Next
-
-'Fill array with geographies from Index
-For i = 0 To tabCount - 2
-    geo(i) = .Worksheets("Index").Cells(i + 2, 4).Value
-Next i
-
-
-
-'Fill first column with geography
-For i = 2 To tabCount
-    rowLast = .Worksheets(i).Range("C" & Worksheets(i).Rows.Count).End(xlUp).Row
-    .Worksheets(i).Range("A1:A" & rowLast).Value = geo(i - 2)
-    If i > 2 And .Worksheets(i).Range("B1").Value = "Time" Then
-        .Worksheets(i).Rows(1).Delete
-    End If
-Next i
-
-'Paste used range of each sheet to sheet "1"
-For i = 3 To tabCount
-    s1RowLast = .Worksheets(2).Range("C" & Worksheets(2).Rows.Count).End(xlUp).Row
-    rowLast = .Worksheets(i).Range("C" & Worksheets(i).Rows.Count).End(xlUp).Row
-    colLast = .Worksheets(i).Cells(1, Columns.Count).End(xlToLeft).Column
-    .Worksheets(i).Range(.Worksheets(i).Cells(1, 1), Worksheets(i).Cells(rowLast, colLast)).Copy Destination:=.Worksheets(2).Range("A" & s1RowLast + 1)
-Next i
-
-'Delete header rows on sheet "1" after pasting empty tabs
-i = 1
-Do While (IsEmpty(.Worksheets(2).Cells(i, 1)) = False)
-    If (.Worksheets(2).Cells(i, 2).Value = "Category Name" Or .Worksheets(2).Cells(i, 2).Value = "Sub-Category Name") Then
-        .Worksheets(2).Rows(i).Delete
-        i = i - 1
-    End If
-    i = i + 1
-Loop
-
-''Delete any empty rows on sheet "1". NOT SURE IF KEEPING THIS
-'i = 1
-'Do While (IsEmpty(.Worksheets(2).Cells(i, 1)) = False)
-'    If (IsEmpty(.Worksheets(2).Cells(i, 3)) = True) Then
-'        .Worksheets(2).Rows(i).Delete
-'        i = i - 1
-'    End If
-'    i = i + 1
-'Loop
-
-'Unmerge cells in Time column
-On Error Resume Next:
-i = 1
-Do While (IsEmpty(.Worksheets(2).Cells(i, 1)) = False)
-    If (.Worksheets(2).Cells(i, 2).MergeCells = True) Then
-        .Worksheets(2).Cells(i, 2).UnMerge
-    End If
-    i = i + 1
-Loop
-
-'Fill down time to appropriate rows
-i = 1
-Do While (IsEmpty(.Worksheets(2).Cells(i, 1)) = False)
-    If (IsEmpty(.Worksheets(2).Cells(i, 2)) = False) Then
-        name = .Worksheets(2).Cells(i, 2).Value
-    ElseIf (IsEmpty(.Worksheets(2).Cells(i, 2)) = True) Then
-        .Worksheets(2).Cells(i, 2).Value = name
-    End If
-    i = i + 1
-Loop
-
-.Worksheets(2).Range("A1").Value = "Geographies"
-.Worksheets(2).Activate
-MsgBox "Success!"
+    
+    With .Worksheets(2)
+        s1RowLast = .Range("C" & Worksheets(2).Rows.Count).End(xlUp).Row
+        
+        'Delete any headers in 1st sheet that copied over
+        For i = s1RowLast To 2 Step -1
+            If .Cells(i, 2).Value = "Time" Then
+                .Rows(i).Delete
+            End If
+        Next
+        
+        'Name first column geographies, switch view to 1st sheet, msgbox success
+        .Range("A1").Value = "Geographies"
+        .Activate
+        MsgBox "Success!"
+    End With
 End With
+Application.ScreenUpdating = True
 Exit Sub
 
 ErrorHandler:
+    If Err.Number = 13 And ThisWorkbook.Worksheets(2).Range("A1").End(xlDown).Value <> "Time" Then
+        ActiveSheet.Activate
+        response = MsgBox("Error: 'Time' should be first column for each sheet. Please re-run data pull from IRI." & vbNewLine & vbNewLine _
+        & "Would you like more information?", vbExclamation + vbYesNoCancel + vbDefaultButton3)
+        If response = 6 Then
+            MsgBox "When exporting IRI Data, first configure grid so 'Time' dimension is first in rows. Then export with 'Legend' checked for Charts, and 'blank' selected for Format" _
+            & vbNewLine & vbNewLine & "Check directions emailed by Spyro Ziangos for more information", vbInformation
+        End If
+        End
+        End If
     MsgBox "Error " & Err.Number & ": " & Err.Description & vbNewLine & vbNewLine & _
     "Please Close Report And Try Again;" & vbNewLine & vbNewLine & "If Error Persists, Contact Spyro Ziangos - spyro.ziangos@advantagesolutions.net", vbExclamation
-    
-Application.ScreenUpdating = True
 End Sub
-
-
-
-
-
