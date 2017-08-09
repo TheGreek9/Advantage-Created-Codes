@@ -38,9 +38,14 @@ With ThisWorkbook
     
     For i = 2 To tabCount
         With .Worksheets(i)
-        
 
+            If (.Range("A" & .Rows.Count).End(xlUp).Value = "Query is Cancelled") Then
+                .Activate
+                MsgBox "Query cancelled on geography: " & geo(i - 2) & vbNewLine & vbNewLine & "Please re-run IRI Report", vbExclamation
+                End
+            End If
             
+                        
             rowLast = .Range("B" & .Rows.Count).End(xlUp).Row
             If rowLast <> 1 Then
                 'Delete text boxes and shapes
