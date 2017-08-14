@@ -1,492 +1,485 @@
 Option Explicit
 Public templateWb As Workbook
 Public templateWs As Worksheet
-
 Sub Main()
-Dim StartTime As Double
-Dim SecondsElapsed As Double
-
-'Remember time when macro starts
-  StartTime = Timer
-  
-Application.ScreenUpdating = False
-Set templateWb = Application.Workbooks("Smithfield Fresh Scorecard Template.xlsm")
-
-For Each templateWs In templateWb.Worksheets
-    Select Case templateWs.Name
-        Case "NI Data"
-            Call NIData
-        Case "Base Data"
-            Call BaseData
-        Case "UG Top 30 New"
-            Call UGT30New
-        Case "UG SO Data"
-            Call UGSOData
-        Case "UG Data By Store"
-            Call UGDBStore
-        Case "UG Data by Item"
-            Call UGDBItem
-        Case "UG Base Data"
-            Call UGBData
-        Case "Auth Matrix Data"
-            Call AuthMatrix
-    End Select
-Next
-
-templateWb.RefreshAll
-Application.ScreenUpdating = True
-'Determine how many seconds code took to run
-  SecondsElapsed = Round(Timer - StartTime, 2)
-
-'Notify user in seconds
-  MsgBox "This code ran successfully in " & SecondsElapsed & " seconds", vbInformation
-'MsgBox "Success!"
-End Sub
-
-Sub NIData()
-If IsEmpty(templateWs.Range("A8")) Then
-    templateWs.Rows("8").Delete
-End If
-Call DeleteInsert(templateWs)
-End Sub
-
-Sub BaseData()
-Dim distArray As Variant
-Dim oosArray As Variant
-Dim tpodArray As Variant
-Dim naArray As Variant
-Dim fixOOSArray As Variant
-Dim fixDVArray As Variant
-Dim perDist As Long
-Dim rowLast As Long
-Dim monthRow As Integer
-
-monthRow = templateWb.Worksheets("Monthly Charts").Range("A1:A200").Find(MonthName(Month(Date)), LookIn:=xlValues).Row
-
-With templateWs
-
-If IsEmpty(.Range("A8")) Then
-    .Rows("8").Delete
-End If
-Call DeleteInsert(templateWs)
-If .Range("AP7").Value = "Trans Date" Then
-    .Range("AP:AP, AY:AZ").Delete
-End If
-
-rowLast = .Range("A" & Rows.count).End(xlUp).Row
-
-distArray = .Range("M7:M" & rowLast).Value
-oosArray = .Range("Y7:Y" & rowLast).Value
-tpodArray = .Range("J7:J" & rowLast).Value
-naArray = .Range("U7:U" & rowLast).Value
-fixOOSArray = .Range("AA7:AA" & rowLast).Value
-fixDVArray = .Range("AC8:AC" & rowLast).Value
-
-distArray = WorksheetFunction.Sum(distArray)
-oosArray = WorksheetFunction.Sum(oosArray)
-tpodArray = WorksheetFunction.Sum(tpodArray)
-naArray = WorksheetFunction.Sum(naArray)
-fixOOSArray = WorksheetFunction.Sum(fixOOSArray)
-fixDVArray = WorksheetFunction.Sum(fixDVArray)
-End With
-
-templateWb.Worksheets("Monthly Charts").Cells(monthRow, 4).Value = (distArray + oosArray) / (tpodArray - naArray)
-templateWb.Worksheets("Monthly Charts").Cells(monthRow, 4).NumberFormat = "0%"
-templateWb.Worksheets("Navigation").Range("J14").Value = fixOOSArray
-templateWb.Worksheets("Navigation").Range("J15").Value = fixDVArray
-
-End Sub
-
-Sub UGT30New()
-Dim shp As Shape
-
-For Each shp In templateWb.Worksheets("UG Top 30 New Dist").Shapes
-    If shp.Type = 17 Then
-        shp.Delete
-    End If
-Next shp
-For Each shp In templateWs.Shapes
-    If shp.Type = 17 Then
-        shp.Delete
-    End If
-Next shp
-
-If IsEmpty(templateWs.Range("A8")) Then
-    templateWs.Rows("8").Delete
-End If
-If IsEmpty(templateWs.Range("A8")) And IsEmpty(templateWs.Range("A9")) Then
-    templateWs.Shapes.AddTextbox(msoTextOrientationHorizontal, 0, 70, 1000, 140).Name = "UGTBox"
-    With templateWs.Shapes("UGTBox").TextFrame
-    .Characters.Text = "No New Items in the Top 30 Unified Stores for the Fresh Team"
-    .Characters.Font.Size = 24
-    .Characters.Font.Color = RGB(255, 0, 0)
-    .VerticalAlignment = xlVAlignCenter
-    .HorizontalAlignment = xlHAlignCenter
-    End With
-    templateWb.Worksheets("UG Top 30 New Dist").Shapes.AddTextbox(msoTextOrientationHorizontal, 0, 70, 865, 140).Name = "UGTBox1"
-    With templateWb.Worksheets("UG Top 30 New Dist").Shapes("UGTBox1").TextFrame
-    .Characters.Text = "No New Items in the Top 30 Unified Stores for the Fresh Team"
-    .Characters.Font.Size = 24
-    .Characters.Font.Color = RGB(255, 0, 0)
-    .VerticalAlignment = xlVAlignCenter
-    .HorizontalAlignment = xlHAlignCenter
-    End With
-Else: Call DeleteInsert(templateWs)
-End If
-End Sub
-
-Sub UGSOData()
-Dim rowLast, colLast, i, arrLen As Long
-Dim chainName As Variant
-Dim monthRow As Integer
-monthRow = templateWb.Worksheets("Monthly Charts").Range("A1:A200").Find(MonthName(Month(Date)), LookIn:=xlValues).Row
-With templateWs
-    If .Range("A8").Value = "-----" Then
-        .Rows("8").Delete
-    End If
+    Application.ScreenUpdating = False
+    Set templateWb = Application.Workbooks("Smithfield Fresh Scorecard Template.xlsm")
     
-    If .Range("A7").Value = "rowID" Then
-        .Range("A:D, I:L, N:Y, AF:AK, AM:AX").Delete
-    End If
-    
-    rowLast = .Range("A" & templateWs.Rows.count).End(xlUp).Row
-    colLast = .Cells(1, Columns.count).End(xlToLeft).Column
-    i = 8
-    Do While IsEmpty(.Cells(i, 12)) = False
-        If .Cells(i, 12).Value <> "ORS" And .Cells(i, 12).Value <> "ORP" Then
-            .Rows(i).Delete
-            i = i - 1
-        End If
-        i = i + 1
-    Loop
-    rowLast = .Range("A" & templateWs.Rows.count).End(xlUp).Row
-    chainName = .Range("E8:E" & rowLast).Value
-    arrLen = UBound(chainName) - LBound(chainName) + 1
-    For i = 1 To rowLast - 7
-        If chainName(i, 1) <> "UG PNW" Then
-           chainName(i, 1) = "UG PNW (AG)"
-        End If
+    For Each templateWs In templateWb.Worksheets
+        Select Case templateWs.Name
+            Case "NI Data"
+                Call NIData
+            Case "Base Data"
+                Call BaseData
+            Case "UG Top 30 New"
+                Call UGT30New
+            Case "UG SO Data"
+                Call UGSOData
+            Case "UG Data By Store"
+                Call UGDBStore
+            Case "UG Data by Item"
+                Call UGDBItem
+            Case "UG Base Data"
+                Call UGBData
+            Case "Auth Matrix Data"
+                Call AuthMatrix
+        End Select
     Next
-    .Range("E8:E" & rowLast).Value = chainName
-End With
-
-templateWb.Worksheets("Monthly Charts").Cells(monthRow, 2).Value = arrLen
+    
+    templateWb.RefreshAll
+    templateWb.Worksheets("NI Data").Activate
+    MsgBox "Success!"
 End Sub
-
-Sub UGDBStore()
-Dim rowLast, colLast, i As Long
-'Dim distDrive As Variant
-
-With templateWs
-rowLast = .Range("A" & Rows.count).End(xlUp).Row
-colLast = .Cells(8, .Columns.count).End(xlToLeft).Column
-If .Cells(6, colLast - 5).Value <> MonthName(Month(Date)) Then
-    .Range(.Cells(8, colLast - 3), .Cells(8, colLast - 2)).EntireColumn.Insert shift:=xlToRight
-End If
-colLast = .Cells(8, .Columns.count).End(xlToLeft).Column
-
-.Cells(6, colLast - 5).Value = MonthName(Month(Date))
-.Range(.Cells(6, colLast - 5), .Cells(6, colLast - 4)).Merge
-.Cells(7, colLast - 5).Value = "Dist #"
-.Cells(7, colLast - 4).Value = "Dist %"
-
-Call funcUGDByStore(templateWs)
-.Cells(7, colLast - 5).PasteSpecial xlPasteValuesAndNumberFormats
-Application.CutCopyMode = False
-rowLast = .Range("A" & Rows.count).End(xlUp).Row
-.Range(.Cells(6, 16), .Cells(rowLast, 17)).Copy
-.Range(.Cells(6, colLast - 5), .Cells(rowLast, colLast - 4)).PasteSpecial xlPasteFormats
-End With
-End Sub
-
-Sub UGDBItem()
-Dim workbook1, workbook2 As Workbook
-Dim count As Integer
-
-templateWs.Range("A7:CZ100000").ClearContents
-'Portland UG Data By Item
-count = 0
-For Each workbook1 In Application.Workbooks
-        If workbook1.Worksheets(1).Range("A1") = "Portland" Then
-            count = 0
-            Exit For
-        Else
-            count = count + 1
-        End If
-Next
-If count >= 1 Then
-    MsgBox "Please open and label Data By Item - Portland file", vbExclamation
-    End
-End If
-
-Call funcUGDByItem(workbook1)
-
-With templateWs
-.Range("A7").PasteSpecial xlPasteValues
-.Range("A7").Value = "Portland UG"
-.Range("A8").Value = "Item Description"
-End With
-
-'Seattle UG Data by Item
-count = 0
-For Each workbook2 In Application.Workbooks
-        If workbook2.Worksheets(1).Range("A1") = "Seattle" Then
-            count = 0
-            Exit For
-        Else
-            count = count + 1
-        End If
-Next
-If count >= 1 Then
-    MsgBox "Please open and label Data By Item - Seattle file", vbExclamation
-    End
-End If
-
-Call funcUGDByItem(workbook2)
-
-With templateWs
-.Range("E7").PasteSpecial xlPasteValues
-.Range("E7").Value = "Seattle UG"
-.Range("E8").Value = "Item Description"
-End With
-
-End Sub
-
-Sub UGBData()
-If IsEmpty(templateWs.Range("A8")) Then
-    templateWs.Rows("8").Delete
-End If
-Call DeleteInsert(templateWs)
-End Sub
-
-Sub AuthMatrix()
-Dim statusArray As Variant
-Dim rowLast, colLast, i As Long
-
-Call DeleteInsert(templateWs)
-With templateWs
-.Range("H7").Value = "Status"
-
-rowLast = .Range("A" & Rows.count).End(xlUp).Row
-colLast = .Cells(7, .Columns.count).End(xlToLeft).Column
-
-statusArray = .Range("T8:T" & rowLast).Value
-For i = 1 To rowLast - 7
-    If statusArray(i, 1) = "N" Then
-        statusArray(i, 1) = "New"
-    ElseIf statusArray(i, 1) = "U" Then
-        statusArray(i, 1) = "Unconfirmed"
-    ElseIf statusArray(i, 1) = "" Then
-        statusArray(i, 1) = "Base"
-    Else
-        statusArray(i, 1) = "Error"
+Sub NIData()
+    If IsEmpty(templateWs.Range("A8")) Then
+        templateWs.Rows("8").Delete
     End If
-Next
-.Range("H8:H" & rowLast).Value = statusArray
-End With
-
+    
+    Call DeleteInsert(templateWs)
+End Sub
+Sub BaseData()
+    Dim distArray, oosArray, tpodArray, naArray, fixOOSArray, fixDVArray As Variant
+    Dim perDist, rowLast As Long
+    Dim monthRow As Integer
+    
+    'On Monthly Charts tab, check what row the current month is in
+    monthRow = templateWb.Worksheets("Monthly Charts").Range("A1:A200").Find(MonthName(Month(Date)), LookIn:=xlValues).Row
+    
+    With templateWs
+        If IsEmpty(.Range("A8")) Then
+            .Rows("8").Delete
+        End If
+        
+        Call DeleteInsert(templateWs)
+        
+        'Delete Columns RS, RS ID, and Trans Date
+        If .Range("AP7").Value = "Trans Date" Then
+            .Range("AP:AP, AY:AZ").Delete
+        End If
+        
+        rowLast = .Range("A" & Rows.count).End(xlUp).Row
+        
+        'Fill arrays with respective column values
+        distArray = .Range("M7:M" & rowLast).Value
+        oosArray = .Range("Y7:Y" & rowLast).Value
+        tpodArray = .Range("J7:J" & rowLast).Value
+        naArray = .Range("U7:U" & rowLast).Value
+        fixOOSArray = .Range("AA7:AA" & rowLast).Value
+        fixDVArray = .Range("AC8:AC" & rowLast).Value
+        
+        'Change the array variable to the sum of the arrays
+        distArray = WorksheetFunction.Sum(distArray)
+        oosArray = WorksheetFunction.Sum(oosArray)
+        tpodArray = WorksheetFunction.Sum(tpodArray)
+        naArray = WorksheetFunction.Sum(naArray)
+        fixOOSArray = WorksheetFunction.Sum(fixOOSArray)
+        fixDVArray = WorksheetFunction.Sum(fixDVArray)
+    End With
+    
+    With templateWb
+        'In Monthly Charts tab, fill the current month with Base Item Build %
+        .Worksheets("Monthly Charts").Cells(monthRow, 4).Value = (distArray + oosArray) / (tpodArray - naArray)
+        .Worksheets("Monthly Charts").Cells(monthRow, 4).NumberFormat = "0%"
+        
+        'Add 2 respective sums to navigation page for calculation of # issues corrected
+        .Worksheets("Navigation").Range("J14").Value = fixOOSArray
+        .Worksheets("Navigation").Range("J15").Value = fixDVArray
+    End With
+End Sub
+Sub UGT30New()
+    Dim shp As Shape
+    'Delete text boxes in both "UG Top 30 New Dist" tab and "UG Top 30 New" tab
+    For Each shp In templateWb.Worksheets("UG Top 30 New Dist").Shapes
+        If shp.Type = 17 Then
+            shp.Delete
+        End If
+    Next shp
+    For Each shp In templateWs.Shapes
+        If shp.Type = 17 Then
+            shp.Delete
+        End If
+    Next shp
+    
+    If IsEmpty(templateWs.Range("A8")) Then
+        templateWs.Rows("8").Delete
+    End If
+    
+    'If there's no data in UG Top 30 New, create a text box in both "UG TOp 30 New Dist" tab and "UG Top 30 New" tab to notify user of no data
+    If IsEmpty(templateWs.Range("A8")) And IsEmpty(templateWs.Range("A9")) Then
+        templateWs.Shapes.AddTextbox(msoTextOrientationHorizontal, 0, 70, 1000, 140).Name = "UGTBox"
+        With templateWs.Shapes("UGTBox").TextFrame
+            .Characters.Text = "No New Items in the Top 30 Unified Stores for the Fresh Team"
+            .Characters.Font.Size = 24
+            .Characters.Font.Color = RGB(255, 0, 0)
+            .VerticalAlignment = xlVAlignCenter
+            .HorizontalAlignment = xlHAlignCenter
+        End With
+        
+        templateWb.Worksheets("UG Top 30 New Dist").Shapes.AddTextbox(msoTextOrientationHorizontal, 0, 70, 865, 140).Name = "UGTBox1"
+        With templateWb.Worksheets("UG Top 30 New Dist").Shapes("UGTBox1").TextFrame
+            .Characters.Text = "No New Items in the Top 30 Unified Stores for the Fresh Team"
+            .Characters.Font.Size = 24
+            .Characters.Font.Color = RGB(255, 0, 0)
+            .VerticalAlignment = xlVAlignCenter
+            .HorizontalAlignment = xlHAlignCenter
+        End With
+    Else: Call DeleteInsert(templateWs)
+    End If
+End Sub
+Sub UGSOData()
+    Dim rowLast, colLast, i, arrLen As Long
+    Dim chainName As Variant
+    Dim monthRow As Integer
+    
+    With templateWs
+        'Clean up data
+        If .Range("A8").Value = "-----" Then
+            .Rows("8").Delete
+        End If
+        
+        If .Range("A7").Value = "rowID" Then
+            .Range("A:D, I:L, N:Y, AF:AK, AM:AX").Delete
+        End If
+        
+        rowLast = .Range("A" & templateWs.Rows.count).End(xlUp).Row
+        colLast = .Cells(1, Columns.count).End(xlToLeft).Column
+        
+        'Only keep the rows that are ORP or ORS in "Activity" column
+        i = 8
+        Do While IsEmpty(.Cells(i, 12)) = False
+            If .Cells(i, 12).Value <> "ORS" And .Cells(i, 12).Value <> "ORP" Then
+                .Rows(i).Delete
+                i = i - 1
+            End If
+            i = i + 1
+        Loop
+        
+        rowLast = .Range("A" & templateWs.Rows.count).End(xlUp).Row
+        chainName = .Range("E8:E" & rowLast).Value
+        arrLen = UBound(chainName) - LBound(chainName) + 1
+        
+        'Change any value in "Chain Name" column that isn't UG PNW to UG PNW (AG)
+        For i = 1 To rowLast - 7
+            If chainName(i, 1) <> "UG PNW" Then
+               chainName(i, 1) = "UG PNW (AG)"
+            End If
+        Next
+        .Range("E8:E" & rowLast).Value = chainName
+    End With
+    
+    'On "Monthly Charts" tab, check what row the current month is in, then add value in "# Suggested Orders" column
+    monthRow = templateWb.Worksheets("Monthly Charts").Range("A1:A200").Find(MonthName(Month(Date)), LookIn:=xlValues).Row
+    templateWb.Worksheets("Monthly Charts").Cells(monthRow, 2).Value = arrLen
+End Sub
+Sub UGDBStore()
+    Dim rowLast, colLast, i As Long
+    
+    With templateWs
+        rowLast = .Range("A" & Rows.count).End(xlUp).Row
+        colLast = .Cells(8, .Columns.count).End(xlToLeft).Column
+        
+        'Insert 2 columns after the previous month to add current month
+        If .Cells(6, colLast - 5).Value <> MonthName(Month(Date)) Then
+            .Range(.Cells(8, colLast - 3), .Cells(8, colLast - 2)).EntireColumn.Insert shift:=xlToRight
+        End If
+        colLast = .Cells(8, .Columns.count).End(xlToLeft).Column
+        
+        'Add the month name to the new column, and add "Dist #" and "Dist %" under it
+        .Cells(6, colLast - 5).Value = MonthName(Month(Date))
+        .Range(.Cells(6, colLast - 5), .Cells(6, colLast - 4)).Merge
+        .Cells(7, colLast - 5).Value = "Dist #"
+        .Cells(7, colLast - 4).Value = "Dist %"
+        
+        Call funcUGDByStore(templateWs)
+        
+        'Paste more data into "UG Data by Store" tab and clean it up
+        .Cells(7, colLast - 5).PasteSpecial xlPasteValuesAndNumberFormats
+        Application.CutCopyMode = False
+        rowLast = .Range("A" & Rows.count).End(xlUp).Row
+        .Range(.Cells(6, 16), .Cells(rowLast, 17)).Copy
+        .Range(.Cells(6, colLast - 5), .Cells(rowLast, colLast - 4)).PasteSpecial xlPasteFormats
+    End With
+End Sub
+Sub UGDBItem()
+    Dim workbook1, workbook2 As Workbook
+    Dim count As Integer
+    templateWs.Range("A7:CZ100000").ClearContents
+    
+    'Check open workbooks for "UG Data By Item - Portland"
+    count = 0
+    For Each workbook1 In Application.Workbooks
+            If workbook1.Worksheets(1).Range("A1") = "Portland" Then
+                count = 0
+                Exit For
+            Else
+                count = count + 1
+            End If
+    Next
+    If count >= 1 Then
+        MsgBox "Please open and label Data By Item - Portland file", vbExclamation
+        End
+    End If
+    
+    Call funcUGDByItem(workbook1)
+    
+    With templateWs
+        .Range("A7").PasteSpecial xlPasteValues
+        .Range("A7").Value = "Portland UG"
+        .Range("A8").Value = "Item Description"
+    End With
+    
+    'Check open workbooks for "UG Data By Item - Seattle"
+    count = 0
+    For Each workbook2 In Application.Workbooks
+            If workbook2.Worksheets(1).Range("A1") = "Seattle" Then
+                count = 0
+                Exit For
+            Else
+                count = count + 1
+            End If
+    Next
+    If count >= 1 Then
+        MsgBox "Please open and label Data By Item - Seattle file", vbExclamation
+        End
+    End If
+    
+    Call funcUGDByItem(workbook2)
+    
+    With templateWs
+        .Range("E7").PasteSpecial xlPasteValues
+        .Range("E7").Value = "Seattle UG"
+        .Range("E8").Value = "Item Description"
+    End With
+    Application.CutCopyMode = False
+End Sub
+Sub UGBData()
+    If IsEmpty(templateWs.Range("A8")) Then
+        templateWs.Rows("8").Delete
+    End If
+    
+    Call DeleteInsert(templateWs)
+End Sub
+Sub AuthMatrix()
+    Dim statusArray As Variant
+    Dim rowLast, colLast, i As Long
+    
+    Call DeleteInsert(templateWs)
+    
+    With templateWs
+        .Range("H7").Value = "Status"
+        rowLast = .Range("A" & Rows.count).End(xlUp).Row
+        colLast = .Cells(7, .Columns.count).End(xlToLeft).Column
+        
+        'Change "Status" column (H) values to repspective value based on "Status" column (T)
+        statusArray = .Range("T8:T" & rowLast).Value
+        For i = 1 To rowLast - 7
+            If statusArray(i, 1) = "N" Then
+                statusArray(i, 1) = "New"
+            ElseIf statusArray(i, 1) = "U" Then
+                statusArray(i, 1) = "Unconfirmed"
+            ElseIf statusArray(i, 1) = "" Then
+                statusArray(i, 1) = "Base"
+            Else
+                statusArray(i, 1) = "Error"
+            End If
+        Next
+        .Range("H8:H" & rowLast).Value = statusArray
+    End With
 End Sub
 
 ____________________________________________________________________________________________________________________________________________________
 
 
-
 Option Explicit
-Public rowLast As Long
-Public colLast As Variant
-
 Function DeleteInsert(templateWs As Variant)
-
-Dim rangeArr() As Variant
-Dim rowLast As Long
-Dim rowFirst As Integer
-Dim k As Long
-
-With templateWs
-    rowLast = .Range("A" & .Rows.count).End(xlUp).Row
-    rowFirst = .Range("A1").End(xlDown).Row + 1
-    If .Range("AS7").Value = "EmployeeId" Then
-        .Range("AS:AT").Delete
-    End If
-    If .Range("H7").Value <> "Average Weeks" And .Range("I7").Value <> "Gold 25" Then
-        .Range("H:I").Insert
-    End If
-
-    'Average Weeks: Extract Cut in Dates, change date since that time, insert result into Average Weeks column
-    If .Range("G7").Value = "Cut In Date" Then
-        .Range("H7").Value = "Average Weeks"
-        rangeArr = .Range("G" & rowFirst & ":G" & rowLast).Value
+    Dim rangeArr() As Variant
+    Dim rowLast, k As Long
+    Dim rowFirst As Integer
+    
+    With templateWs
+        'Delete columns Employee ID and Employee Name and insert columns for Average Weeks and Gold 25
+        rowLast = .Range("A" & .Rows.count).End(xlUp).Row
+        rowFirst = .Range("A1").End(xlDown).Row + 1
+        If .Range("AS7").Value = "EmployeeId" Then
+            .Range("AS:AT").Delete
+        End If
+        If .Range("H7").Value <> "Average Weeks" And .Range("I7").Value <> "Gold 25" Then
+            .Range("H:I").Insert
+        End If
+    
+        'Average Weeks: Extract Cut in Dates, calculate average week based on that time, insert result into Average Weeks column
+        If .Range("G7").Value = "Cut In Date" Then
+            .Range("H7").Value = "Average Weeks"
+            rangeArr = .Range("G" & rowFirst & ":G" & rowLast).Value
+            For k = 1 To rowLast - (rowFirst - 1)
+                If rangeArr(k, 1) = "" Then
+                    rangeArr(k, 1) = ""
+                ElseIf IsEmpty(rangeArr(k, 1)) = False Then
+                    rangeArr(k, 1) = Round((DateDiff("d", rangeArr(k, 1), Date) / 7), 1)
+                Else
+                     MsgBox Err.Number & " Error with Vlookup", vbExclamation
+                End If
+            Next k
+            .Range("H" & rowFirst & ":H" & rowLast).Value = rangeArr
+        End If
+        
+        'Gold 25: Extract item numbers, preform VLookup, insert result into "Gold 25" column
+        .Range("I7").Value = "Gold 25"
+        rangeArr = .Range("C" & rowFirst & ":C" & rowLast).Value
         For k = 1 To rowLast - (rowFirst - 1)
-            If rangeArr(k, 1) = "" Then
-                rangeArr(k, 1) = ""
-            ElseIf IsEmpty(rangeArr(k, 1)) = False Then
-                rangeArr(k, 1) = Round((DateDiff("d", rangeArr(k, 1), Date) / 7), 1)
+            On Error Resume Next
+            rangeArr(k, 1) = WorksheetFunction.VLookup(rangeArr(k, 1), Application.Workbooks("Smithfield Fresh Scorecard Template.xlsm").Worksheets("Top 25").Range("C4:F40"), 2, False)
+            If Err.Number = 1004 Then
+                rangeArr(k, 1) = "No"
+            ElseIf Err.Number = 0 Then
+                rangeArr(k, 1) = "Yes"
             Else
-                 MsgBox Err.Number & " Error with Vlookup", vbExclamation
+                MsgBox Err.Number & " Error with Vlookup", vbExclamation
             End If
         Next k
-        .Range("H" & rowFirst & ":H" & rowLast).Value = rangeArr
-    End If
-    
-    'Gold 25: Extract item numbers, preform VLookup, insert result into "Gold 25" column
-    .Range("I7").Value = "Gold 25"
-    rangeArr = .Range("C" & rowFirst & ":C" & rowLast).Value
-    For k = 1 To rowLast - (rowFirst - 1)
-        On Error Resume Next
-        rangeArr(k, 1) = WorksheetFunction.VLookup(rangeArr(k, 1), Application.Workbooks("Smithfield Fresh Scorecard Template.xlsm").Worksheets("Top 25").Range("C4:F40"), 2, False)
-        If Err.Number = 1004 Then
-            rangeArr(k, 1) = "No"
-        ElseIf Err.Number = 0 Then
-            rangeArr(k, 1) = "Yes"
-        Else
-            MsgBox Err.Number & " Error with Vlookup", vbExclamation
-        End If
-    Next k
-    .Range("I" & rowFirst & ":I" & rowLast).Value = rangeArr
-
-End With
-Exit Function
-    
-
-
+        .Range("I" & rowFirst & ":I" & rowLast).Value = rangeArr
+    End With
 End Function
 Function funcUGDByStore(templateWs As Variant)
-Dim Workbook As Workbook
-Dim rowLast, colLast, rowUGAG, i As Long
-Dim count As Integer
-count = 0
-
-For Each Workbook In Application.Workbooks
-        If Right(Workbook.Worksheets(1).Range("A1").End(xlDown).Value, 14) = "Chain by Store" Then
-            count = 0
-            Exit For
-        Else
-            count = count + 1
-        End If
-Next
-If count >= 1 Then
-    MsgBox "Please open Data By Store file", vbExclamation
-    End
-End If
-
-With Workbook.Worksheets(1)
-    rowLast = .Range("A" & Rows.count).End(xlUp).Row - 4
-    colLast = .Cells(rowLast, Columns.count).End(xlToLeft).Column
+    Dim Workbook As Workbook
+    Dim rowLast, colLast, rowUGAG, i As Long
+    Dim count As Integer
+    count = 0
     
-    For i = 5 To rowLast
-        If .Cells(i, 1).Value = "622-Super Saver Foods" Then
-            .Cells(i, 1).EntireRow.Cut
-        End If
-        If .Cells(i, 1).Value = "UG PNW(AG)" And .Cells(i + 2, 1).Value <> "622-Super Saver Foods" Then
-            .Cells(i + 2, 1).Insert shift:=xlDown
-            Exit For
-        End If
+    'Find open workbook with "Chain By Store" data, and notify user if none available
+    For Each Workbook In Application.Workbooks
+            If Right(Workbook.Worksheets(1).Range("A1").End(xlDown).Value, 14) = "Chain by Store" Then
+                count = 0
+                Exit For
+            Else
+                count = count + 1
+            End If
     Next
-    For i = 5 To rowLast
-        If .Cells(i, 1).Value = "263222-Shop N Kart Market" Then
-            .Cells(i, 1).EntireRow.Cut
-            .Range("A18").End(xlDown).Offset(1, 0).Insert shift:=xlDown
-            Exit For
+    If count >= 1 Then
+        MsgBox "Please open Data By Store file", vbExclamation
+        End
+    End If
+    
+    
+    With Workbook.Worksheets(1)
+        rowLast = .Range("A" & Rows.count).End(xlUp).Row - 4
+        colLast = .Cells(rowLast, Columns.count).End(xlToLeft).Column
+        
+        'Cut out "622 - Super..." row and add it to the beginning of "UG PNW (AG)" area
+        For i = 5 To rowLast
+            If .Cells(i, 1).Value = "622-Super Saver Foods" Then
+                .Cells(i, 1).EntireRow.Cut
+            End If
+            If .Cells(i, 1).Value = "UG PNW(AG)" And .Cells(i + 2, 1).Value <> "622-Super Saver Foods" Then
+                .Cells(i + 2, 1).Insert shift:=xlDown
+                Exit For
+            End If
+        Next
+        
+        ''Cut out "263222 - Shop..." row and add it to the end of "UG PNW (AG)" area
+        For i = 5 To rowLast
+            If .Cells(i, 1).Value = "263222-Shop N Kart Market" Then
+                .Cells(i, 1).EntireRow.Cut
+                .Range("A18").End(xlDown).Offset(1, 0).Insert shift:=xlDown
+                Exit For
+            End If
+        Next
+        Application.CutCopyMode = False
+        
+        'Clean up rows to get rid of miscellaneous data
+        .Range("A1:A5, A8:A14, A16, A32, A34").EntireRow.Delete
+        rowLast = .Range("A" & Rows.count).End(xlUp).Row - 4
+        
+        'Recalculate respective columns for UG PNW and UG PNW (AG)
+        If .Range("H1").Value = "Dist #" Then
+            For i = 2 To rowLast
+                .Cells(i, 8).Value = .Cells(i, 10).Value + .Cells(i, 12).Value + .Cells(i, 14).Value + .Cells(i, 18).Value
+            Next
         End If
-    Next
-    Application.CutCopyMode = False
-    .Range("A1:A5, A8:A14, A16, A32, A34").EntireRow.Delete
-    rowLast = .Range("A" & Rows.count).End(xlUp).Row - 4
-    
-    If .Range("H1").Value = "Dist #" Then
-        For i = 2 To rowLast
-            .Cells(i, 8).Value = .Cells(i, 10).Value + .Cells(i, 12).Value + .Cells(i, 14).Value + .Cells(i, 18).Value
-        Next
-    End If
-    
-    If .Range("I1").Value = "Dist %" Then
-        For i = 2 To rowLast
-            .Cells(i, 9).Value = .Cells(i, 8).Value / .Cells(i, 5).Value
-        Next
-    End If
-    
-    If .Range("G1").Value = "% Rptd" Then
-        For i = 2 To rowLast
-            .Cells(i, 7).Value = .Cells(i, 6).Value / .Cells(i, 5).Value
-        Next
-    End If
-    
-    rowUGAG = .Range("A2:A200").Find("UG PNW(AG)", LookIn:=xlValues).Row
-    
-    
-    If .Range("E1").Value = "Total Poss POD" Then
-        .Cells(3, 5).Value = 0
-        .Cells(rowUGAG, 5) = 0
-        For i = 4 To rowUGAG
-            .Cells(3, 5).Value = .Cells(3, 5).Value + .Cells(i, 5).Value
-        Next
-        For i = rowUGAG To rowLast
-            .Cells(rowUGAG, 5).Value = .Cells(rowUGAG, 5).Value + .Cells(i, 5).Value
-        Next
-    End If
-    
-    If .Range("F1").Value = "Rptd POD" Then
-        .Cells(3, 6).Value = 0
-        .Cells(rowUGAG, 6) = 0
-        For i = 4 To rowUGAG
-            .Cells(3, 6).Value = .Cells(3, 6).Value + .Cells(i, 6).Value
-        Next
-        For i = rowUGAG To rowLast
-            .Cells(rowUGAG, 6).Value = .Cells(rowUGAG, 6).Value + .Cells(i, 6).Value
-        Next
-    End If
-    
-    If .Range("P1").Value = "NA #" Then
-        .Cells(3, 16).Value = 0
-        .Cells(rowUGAG, 16) = 0
-        For i = 4 To rowUGAG
-            .Cells(3, 16).Value = .Cells(3, 16).Value + .Cells(i, 16).Value
-        Next
-        For i = rowUGAG To rowLast
-            .Cells(rowUGAG, 16).Value = .Cells(rowUGAG, 16).Value + .Cells(i, 16).Value
-        Next
-    End If
-    
-    If .Range("Q1").Value = "Void #" Then
-        .Cells(3, 17).Value = 0
-        .Cells(rowUGAG, 17) = 0
-        For i = 4 To rowUGAG
-            .Cells(3, 17).Value = .Cells(3, 17).Value + .Cells(i, 17).Value
-        Next
-        For i = rowUGAG To rowLast
-            .Cells(rowUGAG, 17).Value = .Cells(rowUGAG, 17).Value + .Cells(i, 17).Value
-        Next
-    End If
-    
-    .Range("B:D, J:O, R:U").Delete
-    
-    .Range("D1:D" & rowLast).NumberFormat = "0%"
-    .Range("F1:F" & rowLast).NumberFormat = "0%"
-    .Range("A1:D" & rowLast).Copy
-    templateWs.Range("A7").PasteSpecial xlPasteValuesAndNumberFormats
-    
-    .Range("E1:H" & rowLast).Copy
-End With
+        If .Range("I1").Value = "Dist %" Then
+            For i = 2 To rowLast
+                .Cells(i, 9).Value = .Cells(i, 8).Value / .Cells(i, 5).Value
+            Next
+        End If
+        If .Range("G1").Value = "% Rptd" Then
+            For i = 2 To rowLast
+                .Cells(i, 7).Value = .Cells(i, 6).Value / .Cells(i, 5).Value
+            Next
+        End If
+        
+        'Recalculate totals for UG PNW and UG PNW (AG) in respective columns
+        rowUGAG = .Range("A2:A200").Find("UG PNW(AG)", LookIn:=xlValues).Row
+        If .Range("E1").Value = "Total Poss POD" Then
+            .Cells(3, 5).Value = 0
+            .Cells(rowUGAG, 5) = 0
+            For i = 4 To rowUGAG
+                .Cells(3, 5).Value = .Cells(3, 5).Value + .Cells(i, 5).Value
+            Next
+            For i = rowUGAG To rowLast
+                .Cells(rowUGAG, 5).Value = .Cells(rowUGAG, 5).Value + .Cells(i, 5).Value
+            Next
+        End If
+        If .Range("F1").Value = "Rptd POD" Then
+            .Cells(3, 6).Value = 0
+            .Cells(rowUGAG, 6) = 0
+            For i = 4 To rowUGAG
+                .Cells(3, 6).Value = .Cells(3, 6).Value + .Cells(i, 6).Value
+            Next
+            For i = rowUGAG To rowLast
+                .Cells(rowUGAG, 6).Value = .Cells(rowUGAG, 6).Value + .Cells(i, 6).Value
+            Next
+        End If
+        If .Range("P1").Value = "NA #" Then
+            .Cells(3, 16).Value = 0
+            .Cells(rowUGAG, 16) = 0
+            For i = 4 To rowUGAG
+                .Cells(3, 16).Value = .Cells(3, 16).Value + .Cells(i, 16).Value
+            Next
+            For i = rowUGAG To rowLast
+                .Cells(rowUGAG, 16).Value = .Cells(rowUGAG, 16).Value + .Cells(i, 16).Value
+            Next
+        End If
+        If .Range("Q1").Value = "Void #" Then
+            .Cells(3, 17).Value = 0
+            .Cells(rowUGAG, 17) = 0
+            For i = 4 To rowUGAG
+                .Cells(3, 17).Value = .Cells(3, 17).Value + .Cells(i, 17).Value
+            Next
+            For i = rowUGAG To rowLast
+                .Cells(rowUGAG, 17).Value = .Cells(rowUGAG, 17).Value + .Cells(i, 17).Value
+            Next
+        End If
+        
+        'Clean up the data a bit
+        .Range("B:D, J:O, R:U").Delete
+        .Range("D1:D" & rowLast).NumberFormat = "0%"
+        .Range("F1:F" & rowLast).NumberFormat = "0%"
+        
+        'Copy newly modified data into "Data by Store" tab on Smithfield file
+        .Range("A1:D" & rowLast).Copy
+        templateWs.Range("A7").PasteSpecial xlPasteValuesAndNumberFormats
+        .Range("E1:H" & rowLast).Copy
+    End With
 End Function
 Function funcUGDByItem(Workbook As Variant)
-Dim rowLast, colLast, rowUGAG, i As Long
-
-With Workbook.Worksheets(1)
-    .Range("A1:A5, A8").EntireRow.Delete
-    .Range("B:D").Columns.Delete
-    rowLast = .Range("A" & Rows.count).End(xlUp).Row - 4
-    colLast = .Cells(rowLast, Columns.count).End(xlToLeft).Column
+    Dim rowLast, colLast, rowUGAG, i As Long
     
-    If .Range("E1").Value = "Dist #" Then
-        For i = 2 To rowLast
-            .Cells(i, 5).Value = .Cells(i, 7).Value + .Cells(i, 9).Value + .Cells(i, 11).Value + .Cells(i, 15).Value
-        Next
-    End If
-    
-    .Range("C:D, F:R").Delete
-    
-    .Range("A:C").Sort key1:=.Range("C2"), order1:=xlDescending, Header:=xlYes
-    .Range("A1:C" & rowLast).Copy
-
-End With
+    With Workbook.Worksheets(1)
+        .Range("A1:A5, A8").EntireRow.Delete
+        .Range("B:D").Columns.Delete
+        rowLast = .Range("A" & Rows.count).End(xlUp).Row - 4
+        colLast = .Cells(rowLast, Columns.count).End(xlToLeft).Column
+        
+        'Recalculate Dist # and add it to cell
+        If .Range("E1").Value = "Dist #" Then
+            For i = 2 To rowLast
+                .Cells(i, 5).Value = .Cells(i, 7).Value + .Cells(i, 9).Value + .Cells(i, 11).Value + .Cells(i, 15).Value
+            Next
+        End If
+        
+        'Clean data, and sort Dist # from largest to smallest
+        .Range("C:D, F:R").Delete
+        .Range("A:C").Sort key1:=.Range("C2"), order1:=xlDescending, Header:=xlYes
+        .Range("A1:C" & rowLast).Copy
+    End With
 End Function
