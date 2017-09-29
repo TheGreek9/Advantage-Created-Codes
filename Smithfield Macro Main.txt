@@ -1,0 +1,367 @@
+'For any comments or questions contact: Spyro Ziangos - spyro.ziangos@advantagesolutions.net
+
+Option Explicit
+Public templateWb As Workbook
+Public templateWs As Worksheet
+Sub Main()
+Dim dataByStoreFile, dataByItemFilePortland, dataByItemFileSeattle As Boolean
+
+    On Error GoTo ErrorHandler
+    Application.ScreenUpdating = False
+    Set templateWb = Application.Workbooks("Smithfield Fresh Scorecard Template.xlsm")
+    
+    'Check to make sure all necessary files are open
+    For Each Workbook In Application.Workbooks
+            If Right(Workbook.Worksheets(1).Range("A1").End(xlDown).Value, 14) = "Chain by Store" Then
+                dataByStoreFile = True
+            ElseIf Workbook.Worksheets(1).Range("A1").Value = "Portland" Or Workbook.Worksheets(1).Range("A1").Value = "portland" Then
+                dataByItemFilePortland = True
+            ElseIf Workbook.Worksheets(1).Range("A1").Value = "Seattle" Or Workbook.Worksheets(1).Range("A1").Value = "seattle" Then
+                dataByItemFileSeattle = True
+            End If
+    Next
+    If dataByStoreFile = False Then
+        MsgBox "Please open Data By Store file", vbExclamation
+        End
+    ElseIf dataByItemFilePortland = False Then
+        MsgBox "Please open and label Data By Item - Portland file, or add 'Portland' to cell A1 in file", vbExclamation
+        End
+    ElseIf dataByItemFileSeattle = False Then
+        MsgBox "Please open and label Data By Item - Seattle file, or add 'Seattle' to cell A1 in file", vbExclamation
+        End
+    End If
+    
+    'Main program
+    For Each templateWs In templateWb.Worksheets
+        Select Case templateWs.Name
+            Case "NI Data"
+                Call NIData
+            Case "Base Data"
+                Call BaseData
+            Case "UG Top 30 New"
+                Call UGT30New
+            Case "UG SO Data"
+                Call UGSOData
+            Case "UG Data By Store"
+                Call UGDBStore
+            Case "UG Data by Item"
+                Call UGDBItem
+            Case "UG Base Data"
+                Call UGBData
+            Case "Auth Matrix Data"
+                Call AuthMatrix
+        End Select
+    Next
+    
+    templateWb.RefreshAll
+    templateWb.Worksheets("Navigation").Activate
+    MsgBox "Success!"
+    
+Exit Sub
+ErrorHandler:
+    MsgBox "Problem with " & templateWs.Name & " tab or data. Please fix and rerun, or contact Spyro" & vbNewLine _
+    & vbNewLine & "Error: " & Err.Number & ": " & Err.Description, vbExclamation
+End Sub
+Sub NIData()
+    If IsEmpty(templateWs.Range("A8")) Then
+        templateWs.Rows("8").Delete
+    End If
+    
+    Call DeleteInsert(templateWs)
+End Sub
+Sub BaseData()
+    Dim distArray, oosArray, tpodArray, naArray, fixOOSArray, fixDVArray, dataRangeArray, col As Variant
+    Dim perDist, rowLast As Long
+    Dim monthRow As Integer
+    
+    'On Monthly Charts tab, check what row the current month is in
+    monthRow = templateWb.Worksheets("Monthly Charts").Range("A10:A200").Find(MonthName(Month(Date)), LookIn:=xlValues).Row
+    
+    With templateWs
+        If IsEmpty(.Range("A8")) Then
+            .Rows("8").Delete
+        End If
+        
+        Call DeleteInsert(templateWs)
+        
+        'Delete Columns RS, RS ID, and Trans Date
+        If .Range("AP7").Value = "Trans Date" Then
+            .Range("AP:AP, AY:AZ").Delete
+        End If
+        
+        rowLast = .Range("A" & Rows.count).End(xlUp).Row
+        
+        'Error checking columns
+        dataRangeArray = Array("M", "Y", "U", "AA", "AC")
+        For Each col In dataRangeArray
+            If WorksheetFunction.CountA(.Range(col & "8:" & col & rowLast)) = 0 Then
+                MsgBox "On " & templateWs.Name & " tab, please add data to column " & col
+                End
+            End If
+        Next col
+        
+        'Fill arrays with respective column values
+        distArray = .Range("M7:M" & rowLast).Value
+        oosArray = .Range("Y7:Y" & rowLast).Value
+        tpodArray = .Range("J7:J" & rowLast).Value
+        naArray = .Range("U7:U" & rowLast).Value
+        fixOOSArray = .Range("AA7:AA" & rowLast).Value
+        fixDVArray = .Range("AC8:AC" & rowLast).Value
+        
+        'Change the array variable to the sum of the arrays
+        distArray = WorksheetFunction.Sum(distArray)
+        oosArray = WorksheetFunction.Sum(oosArray)
+        tpodArray = WorksheetFunction.Sum(tpodArray)
+        naArray = WorksheetFunction.Sum(naArray)
+        fixOOSArray = WorksheetFunction.Sum(fixOOSArray)
+        fixDVArray = WorksheetFunction.Sum(fixDVArray)
+    End With
+    
+    With templateWb
+        'In Monthly Charts tab, fill the current month with Base Item Build %
+        .Worksheets("Monthly Charts").Cells(monthRow, 4).Value = (distArray + oosArray) / (tpodArray - naArray)
+        .Worksheets("Monthly Charts").Cells(monthRow, 4).NumberFormat = "0%"
+        
+        'Add 2 respective sums to navigation page for calculation of # issues corrected
+        .Worksheets("Navigation").Range("J14").Value = fixOOSArray
+        .Worksheets("Navigation").Range("J15").Value = fixDVArray
+    End With
+End Sub
+Sub UGT30New()
+    Dim shp As Shape
+    
+    'Delete text boxes in both "UG Top 30 New Dist" tab and "UG Top 30 New" tab
+    With templateWs
+        For Each shp In templateWb.Worksheets("UG Top 30 New Dist").Shapes
+            If shp.Type = 17 Then
+                shp.Delete
+            End If
+        Next shp
+        For Each shp In .Shapes
+            If shp.Type = 17 Then
+                shp.Delete
+            End If
+        Next shp
+        
+        If IsEmpty(.Range("A8")) Then
+            .Rows("8").Delete
+        End If
+        
+        'If there's no data in UG Top 30 New, create a text box in both "UG TOp 30 New Dist" tab and "UG Top 30 New" tab to notify user of no data
+        If WorksheetFunction.CountA(.Range("A8:A30")) = 0 Then
+            .Shapes.AddTextbox(msoTextOrientationHorizontal, 0, 70, 1000, 140).Name = "UGTBox"
+            With .Shapes("UGTBox").TextFrame
+                .Characters.Text = "No New Items in the Top 30 Unified Stores for the Fresh Team"
+                .Characters.Font.Size = 24
+                .Characters.Font.Color = RGB(255, 0, 0)
+                .VerticalAlignment = xlVAlignCenter
+                .HorizontalAlignment = xlHAlignCenter
+            End With
+            
+            templateWb.Worksheets("UG Top 30 New Dist").Shapes.AddTextbox(msoTextOrientationHorizontal, 0, 70, 865, 140).Name = "UGTBox1"
+            With templateWb.Worksheets("UG Top 30 New Dist").Shapes("UGTBox1").TextFrame
+                .Characters.Text = "No New Items in the Top 30 Unified Stores for the Fresh Team"
+                .Characters.Font.Size = 24
+                .Characters.Font.Color = RGB(255, 0, 0)
+                .VerticalAlignment = xlVAlignCenter
+                .HorizontalAlignment = xlHAlignCenter
+            End With
+        Else: Call DeleteInsert(templateWs)
+        End If
+    End With
+End Sub
+Sub UGSOData()
+    Dim rowLast, colLast, i, arrLen As Long
+    Dim chainName As Variant
+    Dim monthRow As Integer
+    
+    With templateWs
+        'Clean up data
+        If .Range("A8").Value = "-----" Then
+            .Rows("8").Delete
+        End If
+        
+        If .Range("A7").Value = "rowID" Then
+            .Range("A:D, I:L, N:Y, AF:AK, AM:AX").Delete
+        End If
+        
+        rowLast = .Range("A" & templateWs.Rows.count).End(xlUp).Row
+        colLast = .Cells(1, Columns.count).End(xlToLeft).Column
+        
+        'Only keep the rows that are ORP or ORS in "Activity" column
+        i = 8
+        Do While IsEmpty(.Cells(i, 12)) = False
+            If .Cells(i, 12).Value <> "ORS" And .Cells(i, 12).Value <> "ORP" Then
+                .Rows(i).Delete
+                i = i - 1
+            End If
+            i = i + 1
+        Loop
+        
+        rowLast = .Range("A" & templateWs.Rows.count).End(xlUp).Row
+        chainName = .Range("E8:E" & rowLast).Value
+        arrLen = UBound(chainName) - LBound(chainName) + 1
+        
+        'Change any value in "Chain Name" column that isn't UG PNW to UG PNW (AG)
+        For i = 1 To rowLast - 7
+            If chainName(i, 1) <> "UG PNW" Then
+               chainName(i, 1) = "UG PNW (AG)"
+            End If
+        Next
+        .Range("E8:E" & rowLast).Value = chainName
+    End With
+    
+    'On "Monthly Charts" tab, check what row the current month is in, then add value in "# Suggested Orders" column
+    monthRow = templateWb.Worksheets("Monthly Charts").Range("A10:A200").Find(MonthName(Month(Date)), LookIn:=xlValues).Row
+    templateWb.Worksheets("Monthly Charts").Cells(monthRow, 2).Value = arrLen
+End Sub
+Sub UGDBStore()
+    Dim rowLast, colLast, i As Long
+    
+    With templateWs
+        rowLast = .Range("A" & Rows.count).End(xlUp).Row
+        colLast = .Cells(8, .Columns.count).End(xlToLeft).Column
+        
+        'Insert 2 columns after the previous month to add current month
+        If .Cells(6, colLast - 5).Value <> MonthName(Month(Date)) Then
+            .Range(.Cells(8, colLast - 3), .Cells(8, colLast - 2)).EntireColumn.Insert shift:=xlToRight
+        End If
+        colLast = .Cells(8, .Columns.count).End(xlToLeft).Column
+        
+        'Add the month name to the new column, and add "Dist #" and "Dist %" under it
+        .Cells(6, colLast - 5).Value = MonthName(Month(Date))
+        .Range(.Cells(6, colLast - 5), .Cells(6, colLast - 4)).Merge
+        .Cells(7, colLast - 5).Value = "Dist #"
+        .Cells(7, colLast - 4).Value = "Dist %"
+        
+        Call funcUGDByStore(templateWs)
+        
+        'Paste more data into "UG Data by Store" tab and clean it up
+        .Cells(7, colLast - 5).PasteSpecial xlPasteValuesAndNumberFormats
+        Application.CutCopyMode = False
+        rowLast = .Range("A" & Rows.count).End(xlUp).Row
+        .Range(.Cells(6, 16), .Cells(rowLast, 17)).Copy
+        .Range(.Cells(6, colLast - 5), .Cells(rowLast, colLast - 4)).PasteSpecial xlPasteFormats
+    End With
+End Sub
+Sub UGDBItem()
+    Dim workbook1, workbook2 As Workbook
+    Dim count As Integer
+    templateWs.Range("A7:CZ100000").ClearContents
+    
+    'Check open workbooks for "UG Data By Item - Portland"
+    count = 0
+    For Each workbook1 In Application.Workbooks
+            If workbook1.Worksheets(1).Range("A1") = "Portland" Or workbook1.Worksheets(1).Range("A1") = "portland" Then
+                count = 0
+                Exit For
+            Else
+                count = count + 1
+            End If
+    Next
+    If count >= 1 Then
+        MsgBox "Please open and label Data By Item - Portland file, or add 'Portland' to cell A1 in file", vbExclamation
+        End
+    End If
+    
+    Call funcUGDByItem(workbook1)
+    
+    With templateWs
+        .Range("A7").PasteSpecial xlPasteValues
+        .Range("A7").Value = "Portland UG"
+        .Range("A8").Value = "Item Description"
+    End With
+    
+    'Check open workbooks for "UG Data By Item - Seattle"
+    count = 0
+    For Each workbook2 In Application.Workbooks
+            If workbook2.Worksheets(1).Range("A1") = "Seattle" Or workbook2.Worksheets(1).Range("A1") = "seattle" Then
+                count = 0
+                Exit For
+            Else
+                count = count + 1
+            End If
+    Next
+    If count >= 1 Then
+        MsgBox "Please open and label Data By Item - Seattle file or add 'Seattle' to cell A1 in file", vbExclamation
+        End
+    End If
+    
+    Call funcUGDByItem(workbook2)
+    
+    With templateWs
+        .Range("E7").PasteSpecial xlPasteValues
+        .Range("E7").Value = "Seattle UG"
+        .Range("E8").Value = "Item Description"
+    End With
+    Application.CutCopyMode = False
+End Sub
+Sub UGBData()
+    If IsEmpty(templateWs.Range("A8")) Then
+        templateWs.Rows("8").Delete
+    End If
+    
+    Call DeleteInsert(templateWs)
+End Sub
+Sub AuthMatrix()
+    Dim statusArray, upcArray As Variant
+    Dim rowLast, colLast, i, rowFirst As Long
+    
+    With templateWs
+    
+        'Change "Status" column (H) values to repspective value based on "Status" column (T)
+        rowLast = .Range("A" & Rows.count).End(xlUp).Row
+        colLast = .Cells(7, .Columns.count).End(xlToLeft).Column
+        rowFirst = .Range("A1").End(xlDown).Row
+        
+        If .Range("H7") <> "Status" Then
+            .Range("H:H").Insert shift:=xlToRight
+        End If
+        
+        .Range("H7").Value = "Status"
+        
+        If .Range("S7").Value = "Status" Then
+            statusArray = .Range("S" & rowFirst + 1 & ":S" & rowLast).Value
+            For i = 1 To rowLast - rowFirst
+                If statusArray(i, 1) = "N" Then
+                    statusArray(i, 1) = "New"
+                ElseIf statusArray(i, 1) = "U" Then
+                    statusArray(i, 1) = "Unconfirmed"
+                ElseIf statusArray(i, 1) = "" Then
+                    statusArray(i, 1) = "Base"
+                Else
+                    statusArray(i, 1) = "Error"
+                End If
+            Next
+            .Range("H" & rowFirst + 1 & ":H" & rowLast).Value = statusArray
+        Else
+            MsgBox "Status not in Column R, see Spyro for help"
+        End If
+        
+        'Gold 25: Extract item numbers, preform VLookup, insert result into "Gold 25" column
+        rowFirst = .Range("A1").End(xlDown).Row
+        rowLast = .Range("A" & Rows.count).End(xlUp).Row
+        colLast = .Cells(7, .Columns.count).End(xlToLeft).Column
+        
+        If .Range("I7") <> "Gold 25" Then
+            .Range("I:I").Insert shift:=xlToRight
+        End If
+                    
+        .Range("I7").Value = "Gold 25"
+        upcArray = .Range("N" & rowFirst + 1 & ":N" & rowLast).Value
+        For i = 1 To rowLast - rowFirst
+            On Error Resume Next
+            upcArray(i, 1) = WorksheetFunction.VLookup(upcArray(i, 1), Application.Workbooks("Smithfield Fresh Scorecard Template.xlsm").Worksheets("Top 25").Range("C4:F40"), 2, False)
+            If Err.Number = 1004 Then
+                upcArray(i, 1) = "No"
+            ElseIf Err.Number = 0 Then
+                upcArray(i, 1) = "Yes"
+            Else
+                MsgBox "ERROR: Gold 25 array of DeleteInsert Function;" _
+                     & vbNewLine & "Please contact Spyro", vbExclamation
+                     End
+            End If
+        Next i
+        .Range("I" & rowFirst + 1 & ":I" & rowLast).Value = upcArray
+    End With
+End Sub
