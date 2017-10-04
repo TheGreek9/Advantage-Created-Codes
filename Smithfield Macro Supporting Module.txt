@@ -82,15 +82,16 @@ Function funcUGDByStore(templateWs As Variant)
         rowLast = .Range("A" & Rows.count).End(xlUp).Row - 4
         colLast = .Cells(rowLast, Columns.count).End(xlToLeft).Column
         
+        'Delete any row without a Total POD number
         For i = rowLast To 1 Step -1
             If IsEmpty(.Cells(i, 5)) And IsEmpty(.Cells(i, 6)) Then
                 .Cells(i, 1).EntireRow.Delete
             End If
         Next
         
+        'Delete any rows between "Grand Total" row and "UG PNW" row
         rowGrandTotal = .Range("A:A").Find("Grand Total").Row
         rowUGPNW = .Range("A:A").Find("UG PNW").Row
-        
         .Range(.Cells(rowGrandTotal + 1, 1), .Cells(rowUGPNW - 1, 1)).EntireRow.Delete
 
         'Recalculate respective columns for UG PNW and UG PNW (AG)
@@ -161,6 +162,8 @@ Function funcUGDByStore(templateWs As Variant)
         .Range("F1:F" & rowLast).NumberFormat = "0%"
         
         'Copy newly modified data into "Data by Store" tab on Smithfield file
+        rowLast = .Range("A" & Rows.count).End(xlUp).Row - 5
+        colLast = .Cells(rowLast, Columns.count).End(xlToLeft).Column
         .Range("A1:D" & rowLast).Copy
         templateWs.Range("A7").PasteSpecial xlPasteValuesAndNumberFormats
         .Range("E1:H" & rowLast).Copy
@@ -188,3 +191,5 @@ Function funcUGDByItem(Workbook As Variant)
         .Range("A1:C" & rowLast).Copy
     End With
 End Function
+
+

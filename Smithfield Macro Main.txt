@@ -5,6 +5,8 @@ Public templateWb As Workbook
 Public templateWs As Worksheet
 Sub Main()
 Dim dataByStoreFile, dataByItemFilePortland, dataByItemFileSeattle As Boolean
+Dim Workbook As Workbook
+Dim fname As Variant
 
     On Error GoTo ErrorHandler
     Application.ScreenUpdating = False
@@ -52,10 +54,24 @@ Dim dataByStoreFile, dataByItemFilePortland, dataByItemFileSeattle As Boolean
                 Call AuthMatrix
         End Select
     Next
-    
+  
+    'Delete macro button but leave other shapes
+    For Each shp In templateWb.Worksheets("Auth Matrix Data")
+        If shp.Type = 8 Then
+            If shp.FormControlType = 0 Then
+            shp.Delete
+            End If
+        End If
+    Next shp
+                
+   'Refresh pivot tables, and save file
     templateWb.RefreshAll
     templateWb.Worksheets("Navigation").Activate
     MsgBox "Success!"
+    fname = Application.GetSaveAsFilename(InitialFileName:="Smithfield Fresh Scorecard " & Format(Date, "mm-dd-yy"))
+    If fname <> False Then
+        Rwb.SaveAs Filename:=fname & "xlsb", FileFormat:=50 '***CHANGE SAVE AS FILE TYPE HERE****
+    End If
     
 Exit Sub
 ErrorHandler:
@@ -75,7 +91,7 @@ Sub BaseData()
     Dim monthRow As Integer
     
     'On Monthly Charts tab, check what row the current month is in
-    monthRow = templateWb.Worksheets("Monthly Charts").Range("A10:A200").Find(MonthName(Month(Date)), LookIn:=xlValues).Row
+    monthRow = templateWb.Worksheets("Monthly Charts").Range("A7:A18").Find(MonthName(Month(Date)), LookIn:=xlValues).Row
     
     With templateWs
         If IsEmpty(.Range("A8")) Then
@@ -181,25 +197,21 @@ Sub UGSOData()
             .Rows("8").Delete
         End If
         
-        If .Range("A7").Value = "rowID" Then
-            .Range("A:D, I:L, N:Y, AF:AK, AM:AX").Delete
-        End If
-        
         rowLast = .Range("A" & templateWs.Rows.count).End(xlUp).Row
         colLast = .Cells(1, Columns.count).End(xlToLeft).Column
         
         'Only keep the rows that are ORP or ORS in "Activity" column
         i = 8
-        Do While IsEmpty(.Cells(i, 12)) = False
-            If .Cells(i, 12).Value <> "ORS" And .Cells(i, 12).Value <> "ORP" Then
+        Do While IsEmpty(.Cells(i, 7)) = False
+            If .Cells(i, 38).Value <> "ORS" And .Cells(i, 38).Value <> "ORP" Then
                 .Rows(i).Delete
                 i = i - 1
             End If
             i = i + 1
         Loop
         
-        rowLast = .Range("A" & templateWs.Rows.count).End(xlUp).Row
-        chainName = .Range("E8:E" & rowLast).Value
+        rowLast = .Range("G" & templateWs.Rows.count).End(xlUp).Row
+        chainName = .Range("M8:M" & rowLast).Value
         arrLen = UBound(chainName) - LBound(chainName) + 1
         
         'Change any value in "Chain Name" column that isn't UG PNW to UG PNW (AG)
@@ -208,11 +220,11 @@ Sub UGSOData()
                chainName(i, 1) = "UG PNW (AG)"
             End If
         Next
-        .Range("E8:E" & rowLast).Value = chainName
+        .Range("M8:M" & rowLast).Value = chainName
     End With
     
     'On "Monthly Charts" tab, check what row the current month is in, then add value in "# Suggested Orders" column
-    monthRow = templateWb.Worksheets("Monthly Charts").Range("A10:A200").Find(MonthName(Month(Date)), LookIn:=xlValues).Row
+    monthRow = templateWb.Worksheets("Monthly Charts").Range("A7:A18").Find(MonthName(Month(Date)), LookIn:=xlValues).Row
     templateWb.Worksheets("Monthly Charts").Cells(monthRow, 2).Value = arrLen
 End Sub
 Sub UGDBStore()
@@ -223,13 +235,13 @@ Sub UGDBStore()
         colLast = .Cells(8, .Columns.count).End(xlToLeft).Column
         
         'Insert 2 columns after the previous month to add current month
-        If .Cells(6, colLast - 5).Value <> MonthName(Month(Date)) Then
+        If .Cells(6, colLast - 5).Value <> MonthName(Month(Date) - 1) Then
             .Range(.Cells(8, colLast - 3), .Cells(8, colLast - 2)).EntireColumn.Insert shift:=xlToRight
         End If
         colLast = .Cells(8, .Columns.count).End(xlToLeft).Column
         
         'Add the month name to the new column, and add "Dist #" and "Dist %" under it
-        .Cells(6, colLast - 5).Value = MonthName(Month(Date))
+        .Cells(6, colLast - 5).Value = MonthName(Month(Date) - 1)
         .Range(.Cells(6, colLast - 5), .Cells(6, colLast - 4)).Merge
         .Cells(7, colLast - 5).Value = "Dist #"
         .Cells(7, colLast - 4).Value = "Dist %"
@@ -242,6 +254,7 @@ Sub UGDBStore()
         rowLast = .Range("A" & Rows.count).End(xlUp).Row
         .Range(.Cells(6, 16), .Cells(rowLast, 17)).Copy
         .Range(.Cells(6, colLast - 5), .Cells(rowLast, colLast - 4)).PasteSpecial xlPasteFormats
+        Application.CutCopyMode = False
     End With
 End Sub
 Sub UGDBItem()
@@ -365,3 +378,5 @@ Sub AuthMatrix()
         .Range("I" & rowFirst + 1 & ":I" & rowLast).Value = upcArray
     End With
 End Sub
+
+
