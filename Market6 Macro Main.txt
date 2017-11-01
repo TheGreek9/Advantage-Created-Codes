@@ -1,0 +1,157 @@
+Option Explicit
+Sub ImportData()
+Application.ScreenUpdating = False
+Dim currentWeek, currentPeriod, num As Integer
+Dim rowFirst, rowLast, weekRowFirst As Long
+Dim workbook As workbook
+Dim Sheet As Worksheet
+Dim weekArr, cell, currentDate As Variant
+Dim W52, YTD, W26, W13, W4, Bump, Sell, Mark As Boolean
+W52 = False
+YTD = False
+W26 = False
+W13 = False
+W4 = False
+Bump = False
+Sell = False
+Mark = False
+
+For Each workbook In Application.Workbooks
+    Select Case workbook.Worksheets(1).Range("A1").value
+        Case "4 Weeks"
+            W4 = True
+        Case "13 Weeks"
+            W13 = True
+        Case "26 Weeks"
+            W26 = True
+        Case "YTD"
+            YTD = True
+        Case "52 Weeks"
+            W52 = True
+        Case "Bump"
+            Bump = True
+        Case "Selling"
+            Sell = True
+        Case "Markdown"
+            Mark = True
+    End Select
+Next
+If W4 = False Then
+    MsgBox "Please open latest 4 week export", vbExclamation
+    End
+End If
+If W13 = False Then
+    MsgBox "Please open latest 13 week export", vbExclamation
+    End
+End If
+If W26 = False Then
+    MsgBox "Please open latest 26 week export", vbExclamation
+    End
+End If
+If YTD = False Then
+    MsgBox "Please open latest YTD week export", vbExclamation
+    End
+End If
+If W52 = False Then
+    MsgBox "Please open latest 52 week export", vbExclamation
+    End
+End If
+If Bump = False Then
+    MsgBox "Please open bump chart export", vbExclamation
+    End
+End If
+If Sell = False Then
+    MsgBox "Please open Store Selling week export", vbExclamation
+    End
+End If
+If Mark = False Then
+    MsgBox "Please open Markdown Data export", vbExclamation
+    End
+End If
+
+For Each Sheet In ThisWorkbook.Worksheets
+    Select Case Sheet.Name
+        Case "DATA"
+            With ThisWorkbook.Worksheets("DATA")
+            weekRowFirst = .Range("A" & Rows.Count).End(xlUp).Row + 1
+            rowLast = .Range("B" & Rows.Count).End(xlUp).Row
+            If rowLast <> 1 Then
+                .Range("A2:K" & rowLast).ClearContents
+            End If
+            For Each workbook In Application.Workbooks
+                Select Case workbook.Worksheets(1).Range("A1").value
+                    Case "4 Weeks"
+                       Call CopyPaste(workbook.Worksheets(1), ThisWorkbook.Worksheets("DATA"))
+                       Call FillWeeks(ThisWorkbook.Worksheets("DATA"), "4 Weeks")
+                    Case "13 Weeks"
+                       Call CopyPaste(workbook.Worksheets(1), ThisWorkbook.Worksheets("DATA"))
+                       Call FillWeeks(ThisWorkbook.Worksheets("DATA"), "13 Weeks")
+                    Case "26 Weeks"
+                       Call CopyPaste(workbook.Worksheets(1), ThisWorkbook.Worksheets("DATA"))
+                       Call FillWeeks(ThisWorkbook.Worksheets("DATA"), "26 Weeks")
+                    Case "YTD"
+                       Call CopyPaste(workbook.Worksheets(1), ThisWorkbook.Worksheets("DATA"))
+                       Call FillWeeks(ThisWorkbook.Worksheets("DATA"), "YTD")
+                    Case "52 Weeks"
+                       Call CopyPaste(workbook.Worksheets(1), ThisWorkbook.Worksheets("DATA"))
+                       Call FillWeeks(ThisWorkbook.Worksheets("DATA"), "52 Weeks")
+                End Select
+            Next
+            End With
+        Case "52wk data"
+            With ThisWorkbook.Worksheets("52wk data")
+                rowLast = .Range("B" & Rows.Count).End(xlUp).Row
+                .Range("A2:H" & rowLast).ClearContents
+                For Each workbook In Application.Workbooks
+                    If workbook.Worksheets(1).Range("A1").value = "Bump" Then
+                        Call CopyPaste(workbook.Worksheets(1), ThisWorkbook.Worksheets("52wk data"))
+                    End If
+                Next
+            End With
+        Case "Stores Selling Data"
+            With ThisWorkbook.Worksheets("Stores Selling Data")
+                rowLast = .Range("B" & Rows.Count).End(xlUp).Row
+                .Range("A2:I" & rowLast).ClearContents
+                For Each workbook In Application.Workbooks
+                    If workbook.Worksheets(1).Range("A1").value = "Selling" And IsEmpty(workbook.Worksheets(1).Range("A2")) = False Then
+                        Call CopyPaste(workbook.Worksheets(1), ThisWorkbook.Worksheets("Stores Selling Data"))
+                    End If
+                Next
+            End With
+        Case "Markdown Data"
+            With ThisWorkbook.Worksheets("Markdown Data")
+                rowLast = .Range("B" & Rows.Count).End(xlUp).Row
+                .Range("A2:AG" & rowLast).ClearContents
+                For Each workbook In Application.Workbooks
+                    If workbook.Worksheets(1).Range("A1").value = "Markdown" And IsEmpty(workbook.Worksheets(1).Range("A2")) = False Then
+                        Call CopyPaste(workbook.Worksheets(1), ThisWorkbook.Worksheets("Markdown Data"))
+                    End If
+                Next
+            End With
+        Case "lkup"
+            With ThisWorkbook.Worksheets("lkup")
+                rowLast = .Range("A" & Rows.Count).End(xlUp).Row
+                currentPeriod = Val(Mid(.Range("A" & rowLast).value, 10, 2)) + 1
+                currentWeek = Val(Right(.Range("A" & rowLast).value, 3)) + 1
+                currentDate = .Range("B" & rowLast).value + 7
+                num = 1
+
+                For Each cell In .Range(.Cells(rowLast + 1, 1), .Cells(rowLast + 4, 1))
+                    cell.value = "2017  PD " & currentPeriod & "  WK " & num & "  (" & currentWeek & ")"
+                    num = num + 1
+                    currentWeek = currentWeek + 1
+                Next
+                
+                For Each cell In .Range(.Cells(rowLast + 1, 2), .Cells(rowLast + 4, 2))
+                    cell.value = currentDate
+                    currentDate = currentDate + 7
+                Next
+            End With
+    End Select
+Next
+
+ThisWorkbook.RefreshAll
+MsgBox "Success!"
+
+Application.ScreenUpdating = True
+End Sub

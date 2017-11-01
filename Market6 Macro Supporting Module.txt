@@ -1,0 +1,33 @@
+Option Explicit
+
+Function CopyPaste(dataSheet As Worksheet, templateSheet As Worksheet)
+Dim rowFirst, rowLast, colLast, tempRowLast As Long
+    rowFirst = dataSheet.Range("B1").End(xlDown).Row
+    rowLast = dataSheet.Range("A" & Rows.Count).End(xlUp).Row
+    colLast = dataSheet.Cells(rowFirst + 3, Columns.Count).End(xlToLeft).Column
+    tempRowLast = templateSheet.Range("B" & Rows.Count).End(xlUp).Row
+
+    dataSheet.Range(dataSheet.Cells(rowFirst + 1, 1), dataSheet.Cells(rowLast, colLast)).Copy
+    If templateSheet.Name = "DATA" Then
+        templateSheet.Range("B" & tempRowLast + 1).PasteSpecial xlPasteValues
+    Else
+        templateSheet.Range("A" & tempRowLast + 1).PasteSpecial xlPasteValues
+    End If
+    Application.CutCopyMode = False
+    
+End Function
+
+Function FillWeeks(templateWorksheet As Worksheet, weekName As String)
+Dim weekRowFirst, rowLast As Long
+Dim cell As Variant
+
+With templateWorksheet
+    weekRowFirst = .Range("A" & Rows.Count).End(xlUp).Row + 1
+    rowLast = .Range("B" & Rows.Count).End(xlUp).Row
+                
+    For Each cell In .Range("A" & weekRowFirst & ":A" & rowLast)
+        cell.value = weekName
+    Next
+End With
+
+End Function
