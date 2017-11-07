@@ -3,7 +3,7 @@ Sub ImportData()
 Application.ScreenUpdating = False
 Dim currentWeek, currentPeriod, num As Integer
 Dim rowFirst, rowLast, weekRowFirst As Long
-Dim workbook As workbook
+Dim Workbook As Workbook
 Dim Sheet As Worksheet
 Dim weekArr, cell, currentDate As Variant
 Dim W52, YTD, W26, W13, W4, Bump, Sell, Mark As Boolean
@@ -16,8 +16,11 @@ Bump = False
 Sell = False
 Mark = False
 
-For Each workbook In Application.Workbooks
-    Select Case workbook.Worksheets(1).Range("A1").value
+On Error GoTo ErrorHandler
+
+
+For Each Workbook In Application.Workbooks
+    Select Case Workbook.Worksheets(1).Range("A1").value
         Case "4 Weeks"
             W4 = True
         Case "13 Weeks"
@@ -78,22 +81,22 @@ For Each Sheet In ThisWorkbook.Worksheets
             If rowLast <> 1 Then
                 .Range("A2:K" & rowLast).ClearContents
             End If
-            For Each workbook In Application.Workbooks
-                Select Case workbook.Worksheets(1).Range("A1").value
+            For Each Workbook In Application.Workbooks
+                Select Case Workbook.Worksheets(1).Range("A1").value
                     Case "4 Weeks"
-                       Call CopyPaste(workbook.Worksheets(1), ThisWorkbook.Worksheets("DATA"))
+                       Call CopyPaste(Workbook.Worksheets(1), ThisWorkbook.Worksheets("DATA"))
                        Call FillWeeks(ThisWorkbook.Worksheets("DATA"), "4 Weeks")
                     Case "13 Weeks"
-                       Call CopyPaste(workbook.Worksheets(1), ThisWorkbook.Worksheets("DATA"))
+                       Call CopyPaste(Workbook.Worksheets(1), ThisWorkbook.Worksheets("DATA"))
                        Call FillWeeks(ThisWorkbook.Worksheets("DATA"), "13 Weeks")
                     Case "26 Weeks"
-                       Call CopyPaste(workbook.Worksheets(1), ThisWorkbook.Worksheets("DATA"))
+                       Call CopyPaste(Workbook.Worksheets(1), ThisWorkbook.Worksheets("DATA"))
                        Call FillWeeks(ThisWorkbook.Worksheets("DATA"), "26 Weeks")
                     Case "YTD"
-                       Call CopyPaste(workbook.Worksheets(1), ThisWorkbook.Worksheets("DATA"))
+                       Call CopyPaste(Workbook.Worksheets(1), ThisWorkbook.Worksheets("DATA"))
                        Call FillWeeks(ThisWorkbook.Worksheets("DATA"), "YTD")
                     Case "52 Weeks"
-                       Call CopyPaste(workbook.Worksheets(1), ThisWorkbook.Worksheets("DATA"))
+                       Call CopyPaste(Workbook.Worksheets(1), ThisWorkbook.Worksheets("DATA"))
                        Call FillWeeks(ThisWorkbook.Worksheets("DATA"), "52 Weeks")
                 End Select
             Next
@@ -101,32 +104,43 @@ For Each Sheet In ThisWorkbook.Worksheets
         Case "52wk data"
             With ThisWorkbook.Worksheets("52wk data")
                 rowLast = .Range("B" & Rows.Count).End(xlUp).Row
-                .Range("A2:H" & rowLast).ClearContents
-                For Each workbook In Application.Workbooks
-                    If workbook.Worksheets(1).Range("A1").value = "Bump" Then
-                        Call CopyPaste(workbook.Worksheets(1), ThisWorkbook.Worksheets("52wk data"))
+                If rowLast <> 1 Then
+                    .Range("A2:H" & rowLast).ClearContents
+                End If
+                For Each Workbook In Application.Workbooks
+                    If Workbook.Worksheets(1).Range("A1").value = "Bump" Then
+                        Call CopyPaste(Workbook.Worksheets(1), ThisWorkbook.Worksheets("52wk data"))
                     End If
                 Next
             End With
         Case "Stores Selling Data"
             With ThisWorkbook.Worksheets("Stores Selling Data")
                 rowLast = .Range("B" & Rows.Count).End(xlUp).Row
-                .Range("A2:I" & rowLast).ClearContents
-                For Each workbook In Application.Workbooks
-                    If workbook.Worksheets(1).Range("A1").value = "Selling" And IsEmpty(workbook.Worksheets(1).Range("A2")) = False Then
-                        Call CopyPaste(workbook.Worksheets(1), ThisWorkbook.Worksheets("Stores Selling Data"))
+                If rowLast <> 1 Then
+                    .Range("A2:I" & rowLast).ClearContents
+                End If
+                For Each Workbook In Application.Workbooks
+                    If Workbook.Worksheets(1).Range("A1").value = "Selling" And IsEmpty(Workbook.Worksheets(1).Range("A2")) = False Then
+                        Call CopyPaste(Workbook.Worksheets(1), ThisWorkbook.Worksheets("Stores Selling Data"))
                     End If
                 Next
             End With
         Case "Markdown Data"
             With ThisWorkbook.Worksheets("Markdown Data")
                 rowLast = .Range("B" & Rows.Count).End(xlUp).Row
-                .Range("A2:AG" & rowLast).ClearContents
-                For Each workbook In Application.Workbooks
-                    If workbook.Worksheets(1).Range("A1").value = "Markdown" And IsEmpty(workbook.Worksheets(1).Range("A2")) = False Then
-                        Call CopyPaste(workbook.Worksheets(1), ThisWorkbook.Worksheets("Markdown Data"))
+                If rowLast <> 1 Then
+                    .Range("A2:AG" & rowLast).ClearContents
+                End If
+                For Each Workbook In Application.Workbooks
+                    If Workbook.Worksheets(1).Range("A1").value = "Markdown" And IsEmpty(Workbook.Worksheets(1).Range("A2")) = False Then
+                        Call CopyPaste(Workbook.Worksheets(1), ThisWorkbook.Worksheets("Markdown Data"))
                     End If
                 Next
+                If IsEmpty(.Range("A2")) = True Then
+                    ThisWorkbook.Worksheets("Period Markdowns").Visible = False
+                Else
+                    ThisWorkbook.Worksheets("Period Markdowns").Visible = True
+                End If
             End With
         Case "lkup"
             With ThisWorkbook.Worksheets("lkup")
@@ -150,8 +164,15 @@ For Each Sheet In ThisWorkbook.Worksheets
     End Select
 Next
 
+ThisWorkbook.Worksheets("52wk Chart").Rows("1:100").EntireRow.Hidden = False
 ThisWorkbook.RefreshAll
 MsgBox "Success!"
+ThisWorkbook.Worksheets("52wk Chart").Activate
 
 Application.ScreenUpdating = True
+Exit Sub
+
+ErrorHandler:
+MsgBox "Error with " & Sheet.Name
+
 End Sub
