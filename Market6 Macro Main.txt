@@ -1,12 +1,15 @@
 Option Explicit
 Sub ImportData()
 Application.ScreenUpdating = False
+
 Dim currentWeek, currentPeriod, num As Integer
 Dim rowFirst, rowLast, weekRowFirst As Long
 Dim Workbook As Workbook
 Dim Sheet As Worksheet
 Dim weekArr, cell, currentDate As Variant
 Dim W52, YTD, W26, W13, W4, Bump, Sell, Mark As Boolean
+Dim shp As Shape
+
 W52 = False
 YTD = False
 W26 = False
@@ -20,7 +23,7 @@ On Error GoTo ErrorHandler
 
 
 For Each Workbook In Application.Workbooks
-    Select Case Workbook.Worksheets(1).Range("A1").value
+    Select Case Workbook.Worksheets(1).Range("A1").Value
         Case "4 Weeks"
             W4 = True
         Case "13 Weeks"
@@ -82,7 +85,7 @@ For Each Sheet In ThisWorkbook.Worksheets
                 .Range("A2:K" & rowLast).ClearContents
             End If
             For Each Workbook In Application.Workbooks
-                Select Case Workbook.Worksheets(1).Range("A1").value
+                Select Case Workbook.Worksheets(1).Range("A1").Value
                     Case "4 Weeks"
                        Call CopyPaste(Workbook.Worksheets(1), ThisWorkbook.Worksheets("DATA"))
                        Call FillWeeks(ThisWorkbook.Worksheets("DATA"), "4 Weeks")
@@ -108,7 +111,7 @@ For Each Sheet In ThisWorkbook.Worksheets
                     .Range("A2:H" & rowLast).ClearContents
                 End If
                 For Each Workbook In Application.Workbooks
-                    If Workbook.Worksheets(1).Range("A1").value = "Bump" Then
+                    If Workbook.Worksheets(1).Range("A1").Value = "Bump" Then
                         Call CopyPaste(Workbook.Worksheets(1), ThisWorkbook.Worksheets("52wk data"))
                     End If
                 Next
@@ -120,7 +123,7 @@ For Each Sheet In ThisWorkbook.Worksheets
                     .Range("A2:I" & rowLast).ClearContents
                 End If
                 For Each Workbook In Application.Workbooks
-                    If Workbook.Worksheets(1).Range("A1").value = "Selling" And IsEmpty(Workbook.Worksheets(1).Range("A2")) = False Then
+                    If Workbook.Worksheets(1).Range("A1").Value = "Selling" And IsEmpty(Workbook.Worksheets(1).Range("A2")) = False Then
                         Call CopyPaste(Workbook.Worksheets(1), ThisWorkbook.Worksheets("Stores Selling Data"))
                     End If
                 Next
@@ -132,7 +135,7 @@ For Each Sheet In ThisWorkbook.Worksheets
                     .Range("A2:AG" & rowLast).ClearContents
                 End If
                 For Each Workbook In Application.Workbooks
-                    If Workbook.Worksheets(1).Range("A1").value = "Markdown" And IsEmpty(Workbook.Worksheets(1).Range("A2")) = False Then
+                    If Workbook.Worksheets(1).Range("A1").Value = "Markdown" And IsEmpty(Workbook.Worksheets(1).Range("A2")) = False Then
                         Call CopyPaste(Workbook.Worksheets(1), ThisWorkbook.Worksheets("Markdown Data"))
                     End If
                 Next
@@ -145,24 +148,34 @@ For Each Sheet In ThisWorkbook.Worksheets
         Case "lkup"
             With ThisWorkbook.Worksheets("lkup")
                 rowLast = .Range("A" & Rows.Count).End(xlUp).Row
-                currentPeriod = Val(Mid(.Range("A" & rowLast).value, 10, 2)) + 1
-                currentWeek = Val(Right(.Range("A" & rowLast).value, 3)) + 1
-                currentDate = .Range("B" & rowLast).value + 7
+                currentPeriod = Val(Mid(.Range("A" & rowLast).Value, 10, 2)) + 1
+                currentWeek = Val(Right(.Range("A" & rowLast).Value, 3)) + 1
+                currentDate = .Range("B" & rowLast).Value + 7
                 num = 1
 
-                For Each cell In .Range(.Cells(rowLast + 1, 1), .Cells(rowLast + 4, 1))
-                    cell.value = "2017  PD " & currentPeriod & "  WK " & num & "  (" & currentWeek & ")"
-                    num = num + 1
-                    currentWeek = currentWeek + 1
-                Next
-                
-                For Each cell In .Range(.Cells(rowLast + 1, 2), .Cells(rowLast + 4, 2))
-                    cell.value = currentDate
-                    currentDate = currentDate + 7
-                Next
+                If (.Cells(rowLast, 2).Value + 7) < Date Then
+                    For Each cell In .Range(.Cells(rowLast + 1, 1), .Cells(rowLast + 4, 1))
+                        cell.Value = "2017  PD " & currentPeriod & "  WK " & num & "  (" & currentWeek & ")"
+                        num = num + 1
+                        currentWeek = currentWeek + 1
+                    Next
+
+                    For Each cell In .Range(.Cells(rowLast + 1, 2), .Cells(rowLast + 4, 2))
+                        cell.Value = currentDate
+                        currentDate = currentDate + 7
+                    Next
+                End If
             End With
     End Select
 Next
+
+For Each shp In ThisWorkbook.Worksheets("Summary").Shapes
+    If shp.Type = 8 Then
+        If shp.FormControlType = 0 Then
+        shp.Delete
+        End If
+    End If
+Next shp
 
 ThisWorkbook.Worksheets("52wk Chart").Rows("1:100").EntireRow.Hidden = False
 ThisWorkbook.RefreshAll
@@ -176,3 +189,4 @@ ErrorHandler:
 MsgBox "Error with " & Sheet.Name
 
 End Sub
+
