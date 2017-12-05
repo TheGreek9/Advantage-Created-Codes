@@ -1,0 +1,117 @@
+Sub ImportData()
+'If seeking help with code, contact: Spyro Ziangos - spyro.ziangos@advantagesolutions.net
+Application.ScreenUpdating = False
+Application.DisplayAlerts = False
+
+Dim rowLast, rowFirst, colLast, wbRowLast, wbRowFirst, wbColLast As Long
+Dim shp As Shape
+Dim Workbook As Workbook
+Dim k, StatusRange(), fname As Variant
+Dim distFile As Boolean
+
+On Error GoTo ErrHandler:
+
+'Delete current data in Data tab
+With ThisWorkbook.Sheets(2)
+    rowLast = .Range("A" & Rows.Count).End(xlUp).Row
+    colLast = .Cells(1, Columns.Count).End(xlToLeft).Column
+    .Range(.Cells(1, 1), .Cells(rowLast, colLast)).Delete
+End With
+distFile = False
+
+'Find Distribution Export file in open workbooks
+For Each Workbook In Application.Workbooks
+    If Left(Workbook.name, 25) = "Distribution - Zero Sales" Then
+        distFile = True
+    End If
+Next
+
+If distFile = False Then
+    MsgBox "Please open export file you would like to import", vbExclamation
+    End
+End If
+
+
+For Each Workbook In Application.Workbooks
+    If Left(Workbook.name, 25) = "Distribution - Zero Sales" Then
+        
+        'Notify if filters are on
+        If Workbook.Sheets(1).AutoFilterMode = True Then
+            MsgBox "Please remove filters from data sheet", vbExclamation
+            End
+        Else
+        End If
+        
+        'Copy data from import file to data tab in workbook
+        With Workbook.Sheets(1)
+            wbRowLast = .Range("A" & Rows.Count).End(xlUp).Row
+            wbRowFirst = .Range("A1").End(xlDown).Row
+            wbColLast = .Cells(wbRowFirst, Columns.Count).End(xlToLeft).Column
+            .Range(.Cells(wbRowFirst, 1), .Cells(wbRowLast, wbColLast)).Copy
+            ThisWorkbook.Sheets(2).Range("A1").PasteSpecial xlPasteValues
+            Application.CutCopyMode = False
+        End With
+        
+        'Check there are no missing headers and clean up data
+        With ThisWorkbook.Worksheets(2)
+            .Rows(2).Delete
+            rowLast = .Range("A" & Rows.Count).End(xlUp).Row
+            rowFirst = .Range("A1").End(xlDown).Row
+            colLast = .Cells(1, Columns.Count).End(xlToLeft).Column
+            
+            If WorksheetFunction.CountBlank(.Range(.Cells(1, 1), .Cells(1, colLast))) > 0 Then
+                MsgBox "One of your data columns has a blank heading." & vbNewLine & "Please fix and re-run.", vbCritical
+                Exit Sub
+            End If
+        End With
+
+        'Add in Fresh Region and appropriate values based on Reference tab
+        On Error Resume Next:
+        With ThisWorkbook.Sheets(2)
+            .Range("AF:AF").Insert
+            .Range("AF1").Value = "Fresh Division"
+            StatusRange = .Range("AE" & 2 & ":AE" & rowLast).Value
+            For k = 1 To rowLast - 1
+                StatusRange(k, 1) = Application.WorksheetFunction.VLookup(StatusRange(k, 1), ThisWorkbook.Sheets(3).Range("A1:B500"), 2, False)
+            Next k
+            .Range("AF" & 2 & ":AF" & rowLast).Value = StatusRange
+        End With
+    
+        '***CHANGE THIS SECTION IF MOVING BUTTON*** -Delete button created to run macro but leave other shapes
+        On Error GoTo ErrHandler:
+        For Each shp In ThisWorkbook.Sheets(1).Shapes
+            If shp.Type = 8 Then
+                If shp.FormControlType = 0 Then
+                    shp.Delete
+                End If
+            End If
+        Next shp
+        
+        ThisWorkbook.Sheets(3).Visible = False
+        ThisWorkbook.Sheets(1).Activate
+        ThisWorkbook.RefreshAll
+        MsgBox "Success!"
+        
+        'Save As file
+        fname = Application.GetSaveAsFilename(InitialFileName:=Format(Date, "mm-dd-yy") & " Advantage Fresh Team Routing")
+        If fname <> False Then
+            ThisWorkbook.SaveAs Filename:=fname & "xlsb", FileFormat:=50 '***CHANGE SAVE AS FILE TYPE HERE****
+        End If
+        
+        Application.ScreenUpdating = True
+        Application.DisplayAlerts = True
+    End If
+Next
+Exit Sub
+
+ErrHandler:
+    If Err.Number = 91 Then
+        MsgBox "Please open export file you would like to import", vbExclamation
+    Else
+        MsgBox "Error: " & Err.Number & vbNewLine & vbNewLine & Err.Description, vbExclamation
+    End If
+    
+End Sub
+
+
+

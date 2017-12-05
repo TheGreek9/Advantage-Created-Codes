@@ -177,10 +177,9 @@ For Each shp In ThisWorkbook.Worksheets("Summary").Shapes
     End If
 Next shp
 
-ThisWorkbook.Worksheets("52wk Chart").Rows("1:100").EntireRow.Hidden = False
 ThisWorkbook.RefreshAll
 MsgBox "Success!"
-ThisWorkbook.Worksheets("52wk Chart").Activate
+ThisWorkbook.Worksheets("Stores Selling").Activate
 
 Application.ScreenUpdating = True
 Exit Sub
@@ -189,4 +188,6 @@ ErrorHandler:
 MsgBox "Error with " & Sheet.Name
 
 End Sub
+
+
 
