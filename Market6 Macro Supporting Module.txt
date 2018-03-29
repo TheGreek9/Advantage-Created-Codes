@@ -1,17 +1,26 @@
 Option Explicit
 
 Function CopyPaste(dataSheet As Worksheet, templateSheet As Worksheet)
-Dim rowFirst, rowLast, colLast, tempRowLast As Long
+    Dim rowFirst, rowLast, colLast, tempRowLast As Long
+
     rowFirst = dataSheet.Range("B1").End(xlDown).Row
     rowLast = dataSheet.Range("A" & Rows.Count).End(xlUp).Row
-    colLast = dataSheet.Cells(rowFirst + 3, Columns.Count).End(xlToLeft).Column
     tempRowLast = templateSheet.Range("B" & Rows.Count).End(xlUp).Row
+    If rowFirst <> rowLast Then
+        colLast = dataSheet.Cells(rowFirst + 3, Columns.Count).End(xlToLeft).Column
+    Else
+        colLast = dataSheet.Cells(rowFirst, Columns.Count).End(xlToLeft).Column
+    End If
 
     dataSheet.Range(dataSheet.Cells(rowFirst + 1, 1), dataSheet.Cells(rowLast, colLast)).Copy
     If templateSheet.Name = "DATA" Then
         templateSheet.Range("B" & tempRowLast + 1).PasteSpecial xlPasteValues
     Else
-        templateSheet.Range("A" & tempRowLast + 1).PasteSpecial xlPasteValues
+        If rowFirst <> rowLast Then
+            templateSheet.Range("A" & tempRowLast + 1).PasteSpecial xlPasteValues
+        Else
+            templateSheet.Range("A" & tempRowLast).PasteSpecial xlPasteValues
+        End If
     End If
     Application.CutCopyMode = False
     
@@ -26,8 +35,9 @@ With templateWorksheet
     rowLast = .Range("B" & Rows.Count).End(xlUp).Row
                 
     For Each cell In .Range("A" & weekRowFirst & ":A" & rowLast)
-        cell.value = weekName
+        cell.Value = weekName
     Next
 End With
 
 End Function
+

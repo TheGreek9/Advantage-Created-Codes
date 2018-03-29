@@ -8,16 +8,12 @@ If (tabCount = 1) Then
     End
 End If
 ReDim geo(0 To tabCount - 2) As Variant
-Dim cell As Variant
-Dim colLast As Long
-Dim i As Long
-Dim j As Long
+Dim cell, timeArray, timeFind As Variant
+Dim i, j, rowLast, s1RowLast, colLast As Long
 Dim name As String
-Dim response As Integer
-Dim rowLast As Long
-Dim s1RowLast As Long
+Dim response, timeCol As Integer
 Dim shp As Shape
-Dim timeArray As Variant
+
 Application.ScreenUpdating = False
 
 On Error GoTo ErrorHandler
@@ -67,29 +63,33 @@ With ThisWorkbook
                 .Range(.Cells(2, 1), .Cells(rowLast, 1)).Value = geo(i - 2)
             
                 'Unmerge Time column
-                .Range("B1:B" & rowLast).UnMerge
-                    
-                'Fill down respecitve times in Time column
-                 If IsEmpty(.Range("B2")) = False Then
-                 timeArray = .Range("B1:B" & rowLast).Value
-                 For j = 1 To rowLast
-                     If IsEmpty(timeArray(j, 1)) = False Then
-                         name = timeArray(j, 1)
-                     Else
-                         timeArray(j, 1) = name
-                     End If
-                 Next j
-                .Range("B1:B" & rowLast).Value = timeArray
-                End If
-                    
-                    'Copy used range in current tab, and paste to end of used range 1st sheet
-                If i > 2 And IsEmpty(.Range("B2")) = False Then
-                     s1RowLast = ThisWorkbook.Worksheets(2).Range("C" & Worksheets(2).Rows.Count).End(xlUp).Row
-                     rowLast = .Range("B" & .Rows.Count).End(xlUp).Row
-                     colLast = .Cells(1, Columns.Count).End(xlToLeft).Column
-                     .Range(.Cells(1, 1), .Cells(rowLast, colLast)).Copy
-                     ThisWorkbook.Worksheets(2).Range("A" & s1RowLast + 1).PasteSpecial xlPasteValues
-                     Application.CutCopyMode = False
+                Set timeFind = .Range("A1:AA1").Find(What:="Time", searchorder:=xlByColumns)
+                If Not (timeFind Is Nothing) Then
+                    timeCol = timeFind.Column
+                    .Range(.Cells(1, timeCol), .Cells(rowLast, timeCol)).UnMerge
+                        
+                    'Fill down respecitve times in Time column
+                     If IsEmpty(.Cells(2, timeCol)) = False Then
+                         timeArray = .Range(.Cells(1, timeCol), .Cells(rowLast, timeCol)).Value
+                         For j = 1 To rowLast
+                             If IsEmpty(timeArray(j, 1)) = False Then
+                                 name = timeArray(j, 1)
+                             Else
+                                 timeArray(j, 1) = name
+                             End If
+                         Next j
+                        .Range(.Cells(1, timeCol), .Cells(rowLast, timeCol)).Value = timeArray
+                    End If
+                        
+                        'Copy used range in current tab, and paste to end of used range 1st sheet
+                    If i > 2 And IsEmpty(.Range("B2")) = False Then
+                         s1RowLast = ThisWorkbook.Worksheets(2).Range("C" & Worksheets(2).Rows.Count).End(xlUp).Row
+                         rowLast = .Range("B" & .Rows.Count).End(xlUp).Row
+                         colLast = .Cells(1, Columns.Count).End(xlToLeft).Column
+                         .Range(.Cells(1, 1), .Cells(rowLast, colLast)).Copy
+                         ThisWorkbook.Worksheets(2).Range("A" & s1RowLast + 1).PasteSpecial xlPasteValues
+                         Application.CutCopyMode = False
+                    End If
                 End If
             End If
         End With
@@ -107,7 +107,6 @@ With ThisWorkbook
         
         'Name first column geographies, switch view to 1st sheet, msgbox success
         .Range("A1").Value = "Geographies"
-        ThisWorkbook.RefreshAll
         .Activate
         MsgBox "Success!"
     End With
@@ -116,17 +115,27 @@ Application.ScreenUpdating = True
 Exit Sub
 
 ErrorHandler:
-    If Err.Number = 13 And ThisWorkbook.Worksheets(2).Range("A1").End(xlDown).Value <> "Time" Then
-        ActiveSheet.Activate
-        response = MsgBox("Error: 'Time' should be first column for each sheet. Please re-run data pull from IRI." & vbNewLine & vbNewLine _
-        & "Would you like more information?", vbExclamation + vbYesNoCancel + vbDefaultButton3)
-        If response = 6 Then
-            MsgBox "When exporting IRI Data, first configure grid so 'Time' dimension is first in rows. Then export with 'Legend' checked for Charts, and 'blank' selected for Format" _
-            & vbNewLine & vbNewLine & "Check directions emailed by Spyro Ziangos for more information", vbInformation
-        End If
-        End
-        End If
+'    If Err.Number = 13 And ThisWorkbook.Worksheets(2).Range("A1").End(xlDown).Value <> "Time" Then
+'        ActiveSheet.Activate
+'        response = MsgBox("Error: 'Time' should be first column for each sheet. Please re-run data pull from IRI." & vbNewLine & vbNewLine _
+'        & "Would you like more information?", vbExclamation + vbYesNoCancel + vbDefaultButton3)
+'        If response = 6 Then
+'            MsgBox "When exporting IRI Data, first configure grid so 'Time' dimension is first in rows. Then export with 'Legend' checked for Charts, and 'blank' selected for Format" _
+'            & vbNewLine & vbNewLine & "Check directions emailed by Spyro Ziangos for more information", vbInformation
+'        End If
+'        End
+'        End If
     MsgBox "Error " & Err.Number & ": " & Err.Description & vbNewLine & vbNewLine & _
     "Please Close Report And Try Again;" & vbNewLine & vbNewLine & "If Error Persists, Contact Spyro Ziangos - spyro.ziangos@advantagesolutions.net", vbExclamation
 End Sub
+
+
+
+
+
+
+
+
+
+
 

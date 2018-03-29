@@ -2,7 +2,7 @@ Option Explicit
 Sub ImportData()
 Application.ScreenUpdating = False
 
-Dim currentWeek, currentPeriod, num As Integer
+Dim currentYear, currentWeek, currentPeriod, num As Integer
 Dim rowFirst, rowLast, weekRowFirst As Long
 Dim Workbook As Workbook
 Dim Sheet As Worksheet
@@ -148,6 +148,7 @@ For Each Sheet In ThisWorkbook.Worksheets
         Case "lkup"
             With ThisWorkbook.Worksheets("lkup")
                 rowLast = .Range("A" & Rows.Count).End(xlUp).Row
+                currentYear = Val(Left(.Range("A" & rowLast).Value, 4))
                 currentPeriod = Val(Mid(.Range("A" & rowLast).Value, 10, 2)) + 1
                 currentWeek = Val(Right(.Range("A" & rowLast).Value, 3)) + 1
                 currentDate = .Range("B" & rowLast).Value + 7
@@ -155,7 +156,16 @@ For Each Sheet In ThisWorkbook.Worksheets
 
                 If (.Cells(rowLast, 2).Value + 7) < Date Then
                     For Each cell In .Range(.Cells(rowLast + 1, 1), .Cells(rowLast + 4, 1))
-                        cell.Value = "2017  PD " & currentPeriod & "  WK " & num & "  (" & currentWeek & ")"
+                        If currentWeek < 10 And currentPeriod < 10 Then
+                            cell.Value = currentYear & "  PD 0" & currentPeriod & "  WK " & num & "  (0" & currentWeek & ")"
+                        ElseIf currentWeek < 10 Then
+                            cell.Value = currentYear & "  PD " & currentPeriod & "  WK " & num & "  (0" & currentWeek & ")"
+                        ElseIf currentPeriod < 10 Then
+                            cell.Value = currentYear & "  PD 0" & currentPeriod & "  WK " & num & "  (" & currentWeek & ")"
+                        Else
+                            cell.Value = currentYear & "  PD " & currentPeriod & "  WK " & num & "  (" & currentWeek & ")"
+                        End If
+                        
                         num = num + 1
                         currentWeek = currentWeek + 1
                     Next
@@ -188,6 +198,7 @@ ErrorHandler:
 MsgBox "Error with " & Sheet.Name
 
 End Sub
+
 
 
 
